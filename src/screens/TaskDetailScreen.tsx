@@ -5,12 +5,13 @@ import {
     TouchableOpacity,
     StatusBar,
     ScrollView,
-    SafeAreaView,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, Spacing, Fonts } from '../theme';
-import Icon from 'react-native-vector-icons/Ionicons';
+import Icon from '@expo/vector-icons/Ionicons';
 import BrandText from '../components/BrandText';
 import BackgroundWrapper from '../components/BackgroundWrapper';
+import { scale, verticalScale, rf, wp, hp } from '../utils/responsiveHelpers';
 
 interface TaskDetailScreenProps {
     task: any;
@@ -22,12 +23,12 @@ const TaskDetailScreen: React.FC<TaskDetailScreenProps> = ({ task, onBack, onInP
     return (
         <BackgroundWrapper>
             <SafeAreaView style={styles.safeArea}>
-                <StatusBar barStyle="light-content" />
+                <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
 
                 {/* Header */}
                 <View style={styles.header}>
                     <TouchableOpacity onPress={onBack} style={styles.backButton}>
-                        <Icon name="chevron-back" size={24} color={Colors.white} />
+                        <Icon name="chevron-back" size={scale(24)} color={Colors.white} />
                     </TouchableOpacity>
                     <BrandText variant="headline" style={styles.headerTitle}>Task Details</BrandText>
                     <View style={styles.backButton} />
@@ -42,7 +43,7 @@ const TaskDetailScreen: React.FC<TaskDetailScreenProps> = ({ task, onBack, onInP
                         <View style={styles.detailSection}>
                             <View style={styles.detailRow}>
                                 <View style={styles.iconContainer}>
-                                    <Icon name="business-outline" size={18} color={Colors.heritageGold} />
+                                    <Icon name="business-outline" size={scale(18)} color={Colors.heritageGold} />
                                 </View>
                                 <View>
                                     <BrandText style={styles.label}>Client</BrandText>
@@ -52,7 +53,7 @@ const TaskDetailScreen: React.FC<TaskDetailScreenProps> = ({ task, onBack, onInP
 
                             <View style={styles.detailRow}>
                                 <View style={styles.iconContainer}>
-                                    <Icon name="location-outline" size={18} color={Colors.heritageGold} />
+                                    <Icon name="location-outline" size={scale(18)} color={Colors.heritageGold} />
                                 </View>
                                 <View>
                                     <BrandText style={styles.label}>Location</BrandText>
@@ -62,7 +63,7 @@ const TaskDetailScreen: React.FC<TaskDetailScreenProps> = ({ task, onBack, onInP
 
                             <View style={styles.detailRow}>
                                 <View style={styles.iconContainer}>
-                                    <Icon name="call-outline" size={18} color={Colors.heritageGold} />
+                                    <Icon name="call-outline" size={scale(18)} color={Colors.heritageGold} />
                                 </View>
                                 <View>
                                     <BrandText style={styles.label}>Contact</BrandText>
@@ -100,92 +101,92 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     header: {
-        height: 100,
-        paddingTop: 40,
+        height: verticalScale(55),
+        paddingTop: verticalScale(10),
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        paddingHorizontal: Spacing.m,
+        paddingHorizontal: wp(5),
     },
     headerTitle: {
-        fontSize: 18,
+        fontSize: rf(22),
         fontWeight: 'bold',
     },
     backButton: {
-        width: 40,
+        width: scale(40),
     },
     content: {
         flex: 1,
-        padding: Spacing.l,
+        padding: scale(20),
     },
     card: {
         backgroundColor: Colors.cardBackground,
-        borderRadius: 20,
-        padding: Spacing.xl,
+        borderRadius: scale(20),
+        padding: scale(24),
         borderWidth: 1,
         borderColor: Colors.divider,
     },
     taskTitle: {
-        fontSize: 28,
+        fontSize: rf(28),
         fontWeight: 'bold',
-        marginBottom: Spacing.xl,
+        marginBottom: verticalScale(24),
     },
     detailSection: {
-        gap: Spacing.l,
-        marginBottom: Spacing.xl,
+        gap: verticalScale(20),
+        marginBottom: verticalScale(24),
     },
     detailRow: {
         flexDirection: 'row',
         alignItems: 'center',
     },
     iconContainer: {
-        width: 40,
-        height: 40,
-        borderRadius: 12,
+        width: scale(40),
+        height: scale(40),
+        borderRadius: scale(12),
         backgroundColor: 'rgba(232, 131, 47, 0.1)',
         justifyContent: 'center',
         alignItems: 'center',
-        marginRight: Spacing.m,
+        marginRight: scale(16),
     },
     label: {
-        fontSize: 12,
+        fontSize: rf(12),
         opacity: 0.5,
-        marginBottom: 2,
+        marginBottom: verticalScale(2),
     },
     value: {
-        fontSize: 16,
+        fontSize: rf(16),
         fontWeight: '500',
     },
     descriptionSection: {
-        marginTop: Spacing.m,
-        paddingTop: Spacing.l,
+        marginTop: verticalScale(16),
+        paddingTop: verticalScale(20),
         borderTopWidth: 1,
         borderTopColor: Colors.divider,
     },
     sectionTitle: {
-        fontSize: 18,
+        fontSize: rf(18),
         fontWeight: 'bold',
-        marginBottom: Spacing.m,
+        marginBottom: verticalScale(16),
     },
     descriptionText: {
-        fontSize: 14,
-        lineHeight: 22,
+        fontSize: rf(14),
+        lineHeight: rf(22),
         opacity: 0.8,
     },
     actionContainer: {
-        padding: Spacing.l,
+        padding: scale(20),
         backgroundColor: 'rgba(0, 35, 28, 0.8)',
     },
     startButton: {
         backgroundColor: Colors.heritageGold,
-        height: 60,
-        borderRadius: 12,
+        height: verticalScale(55),
+        borderRadius: scale(12),
         justifyContent: 'center',
         alignItems: 'center',
     },
     startButtonText: {
         fontWeight: 'bold',
-        fontSize: 18,
+        fontSize: rf(18),
     },
 });
 

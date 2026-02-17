@@ -2,17 +2,19 @@ import React, { useState, useMemo } from 'react';
 import {
     StyleSheet,
     View,
-    SafeAreaView,
     TouchableOpacity,
     StatusBar,
     ScrollView,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Calendar } from 'react-native-calendars';
 import { Colors, Spacing } from '../theme';
-import Icon from 'react-native-vector-icons/Ionicons';
-import FAIcon from 'react-native-vector-icons/FontAwesome5';
+import Icon from '@expo/vector-icons/Ionicons';
+import FAIcon from '@expo/vector-icons/FontAwesome5';
 import BrandText from '../components/BrandText';
 import BackgroundWrapper from '../components/BackgroundWrapper';
+
+import { scale, verticalScale, rf, wp, hp } from '../utils/responsiveHelpers';
 
 interface CalendarScreenProps {
     tasks: any[];
@@ -90,15 +92,15 @@ const CalendarScreen: React.FC<CalendarScreenProps> = ({
     return (
         <BackgroundWrapper>
             <SafeAreaView style={styles.safeArea}>
-                <StatusBar barStyle="light-content" />
+                <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
 
                 {/* Header */}
                 <View style={styles.header}>
                     <TouchableOpacity onPress={onBack} style={styles.backButton}>
-                        <Icon name="chevron-back" size={24} color={Colors.white} />
+                        <Icon name="chevron-back" size={scale(24)} color={Colors.white} />
                     </TouchableOpacity>
                     <BrandText variant="headline" style={styles.headerTitle}>Calendar</BrandText>
-                    <View style={{ width: 40 }} />
+                    <View style={{ width: scale(40) }} />
                 </View>
 
                 <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
@@ -125,9 +127,9 @@ const CalendarScreen: React.FC<CalendarScreenProps> = ({
                                 textDayFontWeight: '400',
                                 textMonthFontWeight: 'bold',
                                 textDayHeaderFontWeight: '400',
-                                textDayFontSize: 16,
-                                textMonthFontSize: 18,
-                                textDayHeaderFontSize: 12
+                                textDayFontSize: rf(16),
+                                textMonthFontSize: rf(18),
+                                textDayHeaderFontSize: rf(12)
                             }}
                             markedDates={markedDates}
                             markingType={'multi-dot'}
@@ -138,15 +140,17 @@ const CalendarScreen: React.FC<CalendarScreenProps> = ({
                     {/* Agenda List */}
                     <View style={styles.agendaSection}>
                         <View style={styles.agendaHeader}>
-                            <BrandText variant="headline" style={styles.agendaTitle}>
-                                {selectedDate === today ? 'Today\'s Tasks' : `Tasks for ${selectedDate}`}
-                            </BrandText>
-                            <BrandText style={styles.taskCount}>{dailyTasks.length} Jobs</BrandText>
+                            <View>
+                                <BrandText variant="headline" style={styles.agendaTitle}>
+                                    {selectedDate === today ? 'Today\'s Schedule' : new Date(selectedDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                                </BrandText>
+                                <BrandText style={styles.taskCount}>{dailyTasks.length} {dailyTasks.length === 1 ? 'Job' : 'Jobs'} Assigned</BrandText>
+                            </View>
                         </View>
 
                         {dailyTasks.length === 0 ? (
                             <View style={styles.emptyState}>
-                                <Icon name="calendar-outline" size={48} color="rgba(255,255,255,0.1)" />
+                                <Icon name="calendar-outline" size={scale(48)} color="rgba(255,255,255,0.1)" />
                                 <BrandText style={styles.emptyText}>No tasks scheduled for this day</BrandText>
                             </View>
                         ) : (
@@ -160,13 +164,13 @@ const CalendarScreen: React.FC<CalendarScreenProps> = ({
                                     <View style={styles.taskInfo}>
                                         <BrandText style={styles.taskTitle}>{task.title}</BrandText>
                                         <View style={styles.taskMeta}>
-                                            <Icon name="business-outline" size={12} color="rgba(255,255,255,0.5)" />
+                                            <Icon name="business-outline" size={scale(12)} color="rgba(255,255,255,0.5)" />
                                             <BrandText style={styles.metaText}>{task.company}</BrandText>
-                                            <Icon name="time-outline" size={12} color="rgba(255,255,255,0.5)" style={{ marginLeft: 12 }} />
+                                            <Icon name="time-outline" size={scale(12)} color="rgba(255,255,255,0.5)" style={{ marginLeft: scale(12) }} />
                                             <BrandText style={styles.metaText}>{task.time || 'All Day'}</BrandText>
                                         </View>
                                     </View>
-                                    <Icon name="chevron-forward" size={18} color="rgba(255,255,255,0.2)" />
+                                    <Icon name="chevron-forward" size={scale(18)} color="rgba(255,255,255,0.2)" />
                                 </TouchableOpacity>
                             ))
                         )}
@@ -176,19 +180,19 @@ const CalendarScreen: React.FC<CalendarScreenProps> = ({
                 {/* Bottom Navigation */}
                 <View style={styles.bottomNav}>
                     <TouchableOpacity style={styles.navItem} onPress={onDashboard}>
-                        <Icon name="home-outline" size={24} color={Colors.white} />
+                        <Icon name="home-outline" size={scale(24)} color={Colors.white} />
                         <BrandText style={styles.navLabel}>Dashboard</BrandText>
                     </TouchableOpacity>
                     <TouchableOpacity style={styles.navItem} onPress={onTasks}>
-                        <FAIcon name="file-alt" size={22} color={Colors.white} />
+                        <FAIcon name="file-alt" size={scale(22)} color={Colors.white} />
                         <BrandText style={styles.navLabel}>Tasks</BrandText>
                     </TouchableOpacity>
                     <TouchableOpacity style={styles.navItem}>
-                        <Icon name="calendar" size={24} color={Colors.heritageGold} />
+                        <Icon name="calendar" size={scale(24)} color={Colors.heritageGold} />
                         <BrandText style={[styles.navLabel, styles.activeNavText]}>Calendar</BrandText>
                     </TouchableOpacity>
                     <TouchableOpacity style={styles.navItem} onPress={onProfile}>
-                        <Icon name="settings-outline" size={24} color={Colors.white} />
+                        <Icon name="settings-outline" size={scale(24)} color={Colors.white} />
                         <BrandText style={styles.navLabel}>Settings</BrandText>
                     </TouchableOpacity>
                 </View>
@@ -202,105 +206,105 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     header: {
-        height: 100,
-        paddingTop: 40,
+        height: verticalScale(55),
+        paddingTop: verticalScale(10),
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        paddingHorizontal: Spacing.m,
+        paddingHorizontal: wp(5),
     },
     headerTitle: {
-        fontSize: 18,
+        fontSize: rf(22),
         fontWeight: 'bold',
     },
     backButton: {
-        width: 40,
+        width: scale(40),
     },
     content: {
         flex: 1,
     },
     calendarCard: {
         backgroundColor: 'rgba(255,255,255,0.03)',
-        margin: Spacing.m,
-        borderRadius: 20,
-        padding: Spacing.s,
+        margin: scale(16),
+        borderRadius: scale(20),
+        padding: scale(8),
         borderWidth: 1,
         borderColor: 'rgba(255,255,255,0.08)',
     },
     agendaSection: {
-        padding: Spacing.m,
+        padding: wp(5),
         paddingTop: 0,
     },
     agendaHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: Spacing.m,
-        paddingHorizontal: 4,
+        marginBottom: verticalScale(16),
+        paddingHorizontal: scale(4),
     },
     agendaTitle: {
-        fontSize: 18,
+        fontSize: rf(18),
         fontWeight: 'bold',
     },
     taskCount: {
-        fontSize: 12,
+        fontSize: rf(12),
         opacity: 0.5,
     },
     emptyState: {
         alignItems: 'center',
         justifyContent: 'center',
-        paddingVertical: 40,
+        paddingVertical: verticalScale(40),
         backgroundColor: 'rgba(255,255,255,0.01)',
-        borderRadius: 16,
+        borderRadius: scale(16),
         borderStyle: 'dashed',
         borderWidth: 1,
         borderColor: 'rgba(255,255,255,0.1)',
     },
     emptyText: {
-        marginTop: 12,
+        marginTop: verticalScale(12),
         opacity: 0.3,
-        fontSize: 14,
+        fontSize: rf(14),
     },
     taskItem: {
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: 'rgba(255,255,255,0.03)',
-        borderRadius: 12,
-        padding: Spacing.m,
-        marginBottom: Spacing.s,
+        borderRadius: scale(12),
+        padding: scale(16),
+        marginBottom: verticalScale(8),
         borderWidth: 1,
         borderColor: 'rgba(255,255,255,0.05)',
     },
     statusIndicator: {
-        width: 4,
+        width: scale(4),
         height: '100%',
-        borderRadius: 2,
-        marginRight: 12,
+        borderRadius: scale(2),
+        marginRight: scale(12),
     },
     taskInfo: {
         flex: 1,
     },
     taskTitle: {
-        fontSize: 16,
+        fontSize: rf(16),
         fontWeight: 'bold',
-        marginBottom: 4,
+        marginBottom: verticalScale(4),
     },
     taskMeta: {
         flexDirection: 'row',
         alignItems: 'center',
     },
     metaText: {
-        fontSize: 12,
+        fontSize: rf(12),
         opacity: 0.5,
-        marginLeft: 4,
+        marginLeft: scale(4),
     },
     bottomNav: {
-        height: 80,
+        height: verticalScale(70),
         flexDirection: 'row',
         backgroundColor: 'rgba(0, 35, 28, 0.95)',
         borderTopWidth: 1,
         borderColor: 'rgba(255,255,255,0.1)',
-        paddingBottom: 20,
+        paddingBottom: verticalScale(10),
     },
     navItem: {
         flex: 1,
@@ -308,8 +312,8 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     navLabel: {
-        fontSize: 10,
-        marginTop: 4,
+        fontSize: rf(10),
+        marginTop: verticalScale(4),
         opacity: 0.6,
     },
     activeNavText: {

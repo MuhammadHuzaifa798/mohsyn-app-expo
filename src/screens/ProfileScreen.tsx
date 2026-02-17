@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     StyleSheet,
     View,
@@ -6,13 +6,16 @@ import {
     StatusBar,
     ScrollView,
     Switch,
-    SafeAreaView,
+    Alert,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, Spacing, Fonts } from '../theme';
-import Icon from 'react-native-vector-icons/Ionicons';
-import FAIcon from 'react-native-vector-icons/FontAwesome5';
+import Icon from '@expo/vector-icons/Ionicons';
+import FAIcon from '@expo/vector-icons/FontAwesome5';
 import BrandText from '../components/BrandText';
 import BackgroundWrapper from '../components/BackgroundWrapper';
+import { scale, verticalScale, rf, wp, hp } from '../utils/responsiveHelpers';
+import { logout, getSessionData } from '../utils/odooApi';
 
 interface ProfileScreenProps {
     onBack: () => void;
@@ -24,16 +27,54 @@ interface ProfileScreenProps {
 
 const ProfileScreen: React.FC<ProfileScreenProps> = ({ onBack, onLogout, onTasks, onLogExpenses, onCalendar }) => {
     const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+    const [userInfo, setUserInfo] = useState({ name: '', email: '' });
+
+    useEffect(() => {
+        loadUserInfo();
+    }, []);
+
+    const loadUserInfo = async () => {
+        const session = await getSessionData();
+        if (session) {
+            setUserInfo({
+                name: session.userName || 'User',
+                email: session.userEmail || '',
+            });
+        }
+    };
+
+    const handleLogout = () => {
+        Alert.alert(
+            'Logout',
+            'Are you sure you want to logout?',
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Logout',
+                    style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            await logout();
+                            onLogout();
+                        } catch (error) {
+                            console.error('Logout error:', error);
+                            onLogout(); // Still navigate to login even on error
+                        }
+                    },
+                },
+            ]
+        );
+    };
 
     return (
         <BackgroundWrapper>
             <SafeAreaView style={styles.safeArea}>
-                <StatusBar barStyle="light-content" />
+                <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
 
                 {/* Header */}
                 <View style={styles.header}>
                     <TouchableOpacity onPress={onBack} style={styles.backButton}>
-                        <Icon name="chevron-back" size={24} color={Colors.white} />
+                        <Icon name="chevron-back" size={scale(24)} color={Colors.white} />
                     </TouchableOpacity>
                     <BrandText variant="headline" style={styles.headerTitle}>Profile</BrandText>
                     <View style={styles.backButton} />
@@ -44,11 +85,11 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onBack, onLogout, onTasks
                     <View style={styles.profileHeader}>
                         <View style={styles.avatarContainer}>
                             <View style={styles.avatarCircle}>
-                                <Icon name="person" size={50} color={Colors.white} />
+                                <Icon name="person" size={scale(50)} color={Colors.white} />
                             </View>
                         </View>
-                        <BrandText variant="headline" withDot style={styles.userName}>John Smith</BrandText>
-                        <BrandText style={styles.userRole}>Field Service Officer</BrandText>
+                        <BrandText variant="headline" withDot style={styles.userName}>{userInfo.name}</BrandText>
+                        <BrandText style={styles.userRole}>{userInfo.email}</BrandText>
                     </View>
 
                     {/* Settings Section */}
@@ -56,31 +97,31 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onBack, onLogout, onTasks
                         <TouchableOpacity style={styles.menuItem}>
                             <View style={styles.menuItemLeft}>
                                 <View style={styles.iconContainer}>
-                                    <Icon name="cash-outline" size={20} color={Colors.heritageGold} />
+                                    <Icon name="cash-outline" size={scale(20)} color={Colors.heritageGold} />
                                 </View>
                                 <BrandText style={styles.menuText}>My Profits</BrandText>
                             </View>
-                            <Icon name="chevron-forward" size={20} color="rgba(255,255,255,0.3)" />
+                            <Icon name="chevron-forward" size={scale(20)} color="rgba(255,255,255,0.3)" />
                         </TouchableOpacity>
 
                         <TouchableOpacity style={styles.menuItem}>
                             <View style={styles.menuItemLeft}>
                                 <View style={styles.iconContainer}>
-                                    <Icon name="notifications-outline" size={20} color={Colors.heritageGold} />
+                                    <Icon name="notifications-outline" size={scale(20)} color={Colors.heritageGold} />
                                 </View>
                                 <BrandText style={styles.menuText}>Notifications</BrandText>
                             </View>
-                            <Icon name="chevron-forward" size={20} color="rgba(255,255,255,0.3)" />
+                            <Icon name="chevron-forward" size={scale(20)} color="rgba(255,255,255,0.3)" />
                         </TouchableOpacity>
 
-                        <TouchableOpacity style={styles.menuItem} onPress={onLogout}>
+                        <TouchableOpacity style={styles.menuItem} onPress={handleLogout}>
                             <View style={styles.menuItemLeft}>
                                 <View style={styles.iconContainer}>
-                                    <Icon name="log-out-outline" size={20} color={Colors.heritageGold} />
+                                    <Icon name="log-out-outline" size={scale(20)} color={Colors.heritageGold} />
                                 </View>
                                 <BrandText style={styles.menuText}>Logout</BrandText>
                             </View>
-                            <Icon name="chevron-forward" size={20} color="rgba(255,255,255,0.3)" />
+                            <Icon name="chevron-forward" size={scale(20)} color="rgba(255,255,255,0.3)" />
                         </TouchableOpacity>
                     </View>
 
@@ -92,19 +133,19 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onBack, onLogout, onTasks
                 {/* Bottom Navigation */}
                 <View style={styles.bottomNav}>
                     <TouchableOpacity style={styles.navItem} onPress={onBack}>
-                        <Icon name="home-outline" size={24} color={Colors.white} />
+                        <Icon name="home-outline" size={scale(24)} color={Colors.white} />
                         <BrandText style={styles.navLabel}>Dashboard</BrandText>
                     </TouchableOpacity>
                     <TouchableOpacity style={styles.navItem} onPress={onTasks}>
-                        <FAIcon name="file-alt" size={22} color={Colors.white} />
+                        <FAIcon name="file-alt" size={scale(22)} color={Colors.white} />
                         <BrandText style={styles.navLabel}>Tasks</BrandText>
                     </TouchableOpacity>
                     <TouchableOpacity style={styles.navItem} onPress={onCalendar}>
-                        <Icon name="calendar-outline" size={24} color={Colors.white} />
+                        <Icon name="calendar-outline" size={scale(24)} color={Colors.white} />
                         <BrandText style={styles.navLabel}>Calendar</BrandText>
                     </TouchableOpacity>
                     <TouchableOpacity style={styles.navItem}>
-                        <Icon name="settings" size={24} color={Colors.heritageGold} />
+                        <Icon name="settings" size={scale(24)} color={Colors.heritageGold} />
                         <BrandText style={[styles.navLabel, styles.activeNavText]}>Settings</BrandText>
                     </TouchableOpacity>
                 </View>
@@ -118,41 +159,42 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     header: {
-        height: 60,
+        height: verticalScale(55),
+        paddingTop: verticalScale(10),
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        paddingHorizontal: Spacing.m,
+        paddingHorizontal: wp(5),
     },
     headerTitle: {
-        fontSize: 18,
+        fontSize: rf(22),
         fontWeight: 'bold',
     },
     backButton: {
-        width: 40,
+        width: scale(40),
     },
     content: {
         flex: 1,
     },
     profileHeader: {
-        paddingVertical: Spacing.xxl,
+        paddingVertical: verticalScale(32),
         alignItems: 'center',
     },
     avatarContainer: {
-        width: 100,
-        height: 100,
-        borderRadius: 50,
+        width: scale(100),
+        height: scale(100),
+        borderRadius: scale(50),
         backgroundColor: 'rgba(255, 255, 255, 0.1)',
         justifyContent: 'center',
         alignItems: 'center',
-        marginBottom: Spacing.m,
+        marginBottom: verticalScale(16),
         borderWidth: 1,
         borderColor: Colors.divider,
     },
     avatarCircle: {
-        width: 80,
-        height: 80,
-        borderRadius: 40,
+        width: scale(80),
+        height: scale(80),
+        borderRadius: scale(40),
         backgroundColor: 'rgba(255, 255, 255, 0.2)',
         justifyContent: 'center',
         alignItems: 'center',
@@ -160,20 +202,20 @@ const styles = StyleSheet.create({
         borderColor: Colors.heritageGold,
     },
     userName: {
-        fontSize: 24,
+        fontSize: rf(24),
         fontWeight: 'bold',
     },
     userRole: {
-        fontSize: 14,
+        fontSize: rf(14),
         opacity: 0.7,
-        marginTop: 4,
+        marginTop: verticalScale(4),
     },
     settingsSection: {
-        marginHorizontal: Spacing.l,
-        marginTop: Spacing.l,
+        marginHorizontal: wp(6),
+        marginTop: verticalScale(24),
         backgroundColor: Colors.cardBackground,
-        borderRadius: 16,
-        padding: Spacing.m,
+        borderRadius: scale(16),
+        padding: scale(16),
         borderWidth: 1,
         borderColor: Colors.divider,
     },
@@ -181,7 +223,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        paddingVertical: Spacing.m,
+        paddingVertical: verticalScale(16),
         borderBottomWidth: 1,
         borderBottomColor: Colors.divider,
     },
@@ -190,34 +232,34 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     iconContainer: {
-        width: 36,
-        height: 36,
-        borderRadius: 10,
+        width: scale(36),
+        height: scale(36),
+        borderRadius: scale(10),
         backgroundColor: 'rgba(232, 131, 47, 0.1)',
         justifyContent: 'center',
         alignItems: 'center',
-        marginRight: Spacing.m,
+        marginRight: scale(16),
     },
     menuText: {
-        fontSize: 16,
+        fontSize: rf(16),
         fontWeight: '500',
     },
     versionContainer: {
-        marginTop: Spacing.xxl,
+        marginTop: verticalScale(48),
         alignItems: 'center',
-        paddingBottom: Spacing.xl,
+        paddingBottom: verticalScale(32),
     },
     versionText: {
-        fontSize: 12,
+        fontSize: rf(12),
         opacity: 0.4,
     },
     bottomNav: {
-        height: 80,
+        height: verticalScale(70),
         flexDirection: 'row',
         backgroundColor: 'rgba(0, 35, 28, 0.95)',
         borderTopWidth: 1,
         borderColor: Colors.divider,
-        paddingBottom: 20,
+        paddingBottom: verticalScale(10),
     },
     navItem: {
         flex: 1,
@@ -225,8 +267,8 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     navLabel: {
-        fontSize: 10,
-        marginTop: 4,
+        fontSize: rf(10),
+        marginTop: verticalScale(4),
         opacity: 0.8,
     },
     activeNavText: {

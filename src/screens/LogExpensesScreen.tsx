@@ -6,36 +6,54 @@ import {
     StatusBar,
     ScrollView,
     TextInput,
-    SafeAreaView,
 } from 'react-native';
-import Icon from 'react-native-vector-icons/Ionicons';
-import FAIcon from 'react-native-vector-icons/FontAwesome5';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import Icon from '@expo/vector-icons/Ionicons';
+import FAIcon from '@expo/vector-icons/FontAwesome5';
 import { Colors, Spacing, Fonts } from '../theme';
 import BrandText from '../components/BrandText';
 import BackgroundWrapper from '../components/BackgroundWrapper';
+import { scale, verticalScale, rf, wp, hp } from '../utils/responsiveHelpers';
 
 interface LogExpensesScreenProps {
     onBack: () => void;
-    onSubmit: () => void;
+    onSubmit: (amount: string) => void;
     onDashboard: () => void;
     onTasks: () => void;
     onProfile: () => void;
 }
 
+import { takePhoto, pickImage, showUploadOptions, UploadedFile } from '../utils/uploadHelpers';
+import { Image } from 'react-native';
+
 const LogExpensesScreen: React.FC<LogExpensesScreenProps> = ({ onBack, onSubmit, onDashboard, onTasks, onProfile }) => {
     const [amount, setAmount] = useState('500');
-    const [expenseType, setExpenseType] = useState('Transport');
     const [hours, setHours] = useState('3');
+    const [receiptImage, setReceiptImage] = useState<string | null>(null);
+
+    const handleCameraUpload = async () => {
+        const file = await takePhoto();
+        if (file) setReceiptImage(file.uri);
+    };
+
+    const handleGalleryUpload = async () => {
+        const file = await pickImage();
+        if (file) setReceiptImage(file.uri);
+    };
+
+    const handleUploadPress = () => {
+        showUploadOptions(handleCameraUpload, handleGalleryUpload);
+    };
 
     return (
         <BackgroundWrapper>
             <SafeAreaView style={styles.safeArea}>
-                <StatusBar barStyle="light-content" />
+                <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
 
                 {/* Header */}
                 <View style={styles.header}>
                     <TouchableOpacity onPress={onBack} style={styles.backButton}>
-                        <Icon name="chevron-back" size={24} color={Colors.white} />
+                        <Icon name="chevron-back" size={scale(24)} color={Colors.white} />
                     </TouchableOpacity>
                     <BrandText variant="headline" withDot style={styles.headerTitle}>Log Expense</BrandText>
                     <View style={styles.backButton} />
@@ -58,23 +76,26 @@ const LogExpensesScreen: React.FC<LogExpensesScreenProps> = ({ onBack, onSubmit,
                             </View>
                         </View>
 
-                        {/* Expense Type Field */}
+                        {/* Upload Receipt Section */}
                         <View style={styles.inputGroup}>
-                            <BrandText style={styles.label}>Expense Type</BrandText>
-                            <TouchableOpacity style={styles.dropdown}>
-                                <BrandText style={styles.dropdownText}>{expenseType}</BrandText>
-                                <Icon name="chevron-down" size={20} color={Colors.heritageGold} />
-                            </TouchableOpacity>
+                            <BrandText style={styles.label}>Receipt</BrandText>
+                            {receiptImage ? (
+                                <View style={styles.receiptPreviewContainer}>
+                                    <Image source={{ uri: receiptImage }} style={styles.receiptPreview} />
+                                    <TouchableOpacity style={styles.removeReceiptBtn} onPress={() => setReceiptImage(null)}>
+                                        <Icon name="close-circle" size={scale(24)} color={Colors.heritageGold} />
+                                    </TouchableOpacity>
+                                </View>
+                            ) : (
+                                <TouchableOpacity style={styles.uploadButton} onPress={handleUploadPress}>
+                                    <Icon name="camera-outline" size={scale(20)} color={Colors.white} style={{ marginRight: scale(10) }} />
+                                    <BrandText style={styles.uploadText}>Upload Receipt</BrandText>
+                                </TouchableOpacity>
+                            )}
                         </View>
 
-                        {/* Upload Receipt Button */}
-                        <TouchableOpacity style={styles.uploadButton}>
-                            <Icon name="camera-outline" size={20} color={Colors.white} style={{ marginRight: 10 }} />
-                            <BrandText style={styles.uploadText}>Upload Receipt</BrandText>
-                        </TouchableOpacity>
-
                         {/* Field Hours Field */}
-                        <View style={[styles.inputGroup, { marginTop: Spacing.xl }]}>
+                        <View style={[styles.inputGroup, { marginTop: verticalScale(24) }]}>
                             <BrandText style={styles.label}>Field Hours</BrandText>
                             <View style={styles.inputWrapper}>
                                 <TextInput
@@ -90,7 +111,7 @@ const LogExpensesScreen: React.FC<LogExpensesScreenProps> = ({ onBack, onSubmit,
                     </View>
 
                     {/* Submit Button */}
-                    <TouchableOpacity style={styles.submitButton} onPress={onSubmit}>
+                    <TouchableOpacity style={styles.submitButton} onPress={() => onSubmit(amount)}>
                         <BrandText style={styles.submitButtonText}>Submit Expense</BrandText>
                     </TouchableOpacity>
                 </ScrollView>
@@ -98,19 +119,19 @@ const LogExpensesScreen: React.FC<LogExpensesScreenProps> = ({ onBack, onSubmit,
                 {/* Bottom Navigation */}
                 <View style={styles.bottomNav}>
                     <TouchableOpacity style={styles.navItem} onPress={onDashboard}>
-                        <Icon name="home-outline" size={24} color={Colors.white} />
+                        <Icon name="home-outline" size={scale(24)} color={Colors.white} />
                         <BrandText style={styles.navLabel}>Dashboard</BrandText>
                     </TouchableOpacity>
                     <TouchableOpacity style={styles.navItem} onPress={onTasks}>
-                        <FAIcon name="file-alt" size={22} color={Colors.white} />
+                        <FAIcon name="file-alt" size={scale(22)} color={Colors.white} />
                         <BrandText style={styles.navLabel}>Tasks</BrandText>
                     </TouchableOpacity>
                     <TouchableOpacity style={styles.navItem}>
-                        <FAIcon name="briefcase" size={22} color={Colors.heritageGold} />
+                        <FAIcon name="briefcase" size={scale(22)} color={Colors.heritageGold} />
                         <BrandText style={[styles.navLabel, styles.activeNavText]}>Expenses</BrandText>
                     </TouchableOpacity>
                     <TouchableOpacity style={styles.navItem} onPress={onProfile}>
-                        <Icon name="settings-outline" size={24} color={Colors.white} />
+                        <Icon name="settings-outline" size={scale(24)} color={Colors.white} />
                         <BrandText style={styles.navLabel}>Settings</BrandText>
                     </TouchableOpacity>
                 </View>
@@ -124,72 +145,73 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     header: {
-        height: 60,
+        height: verticalScale(55),
+        paddingTop: verticalScale(10),
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        paddingHorizontal: Spacing.m,
+        paddingHorizontal: wp(5),
     },
     headerTitle: {
-        fontSize: 18,
+        fontSize: rf(22),
         fontWeight: 'bold',
     },
     backButton: {
-        width: 40,
+        width: scale(40),
     },
     content: {
         flex: 1,
-        padding: Spacing.l,
+        padding: wp(6),
     },
     card: {
         backgroundColor: Colors.cardBackground,
-        borderRadius: 20,
-        padding: Spacing.xl,
+        borderRadius: scale(20),
+        padding: scale(20),
         borderWidth: 1,
         borderColor: Colors.divider,
     },
     inputGroup: {
-        marginBottom: Spacing.l,
+        marginBottom: verticalScale(16),
     },
     label: {
-        fontSize: 14,
+        fontSize: rf(14),
         opacity: 0.5,
-        marginBottom: 8,
+        marginBottom: verticalScale(8),
     },
     inputWrapper: {
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: Colors.inputBackground,
-        borderRadius: 12,
-        paddingHorizontal: Spacing.m,
-        height: 55,
+        borderRadius: scale(12),
+        paddingHorizontal: scale(16),
+        height: verticalScale(55),
         borderWidth: 1,
         borderColor: Colors.divider,
     },
     input: {
         flex: 1,
         color: Colors.white,
-        fontSize: 16,
+        fontSize: rf(16),
         fontFamily: Fonts.poppins,
     },
     unitText: {
-        fontSize: 14,
+        fontSize: rf(14),
         opacity: 0.5,
-        marginLeft: 8,
+        marginLeft: scale(8),
     },
     dropdown: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
         backgroundColor: Colors.inputBackground,
-        borderRadius: 12,
-        paddingHorizontal: Spacing.m,
-        height: 55,
+        borderRadius: scale(12),
+        paddingHorizontal: scale(16),
+        height: verticalScale(55),
         borderWidth: 1,
         borderColor: Colors.divider,
     },
     dropdownText: {
-        fontSize: 16,
+        fontSize: rf(16),
         fontWeight: '500',
     },
     uploadButton: {
@@ -197,37 +219,59 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        height: 55,
-        borderRadius: 12,
-        marginTop: Spacing.s,
+        height: verticalScale(55),
+        borderRadius: scale(12),
+        marginTop: verticalScale(8),
         borderWidth: 1,
         borderColor: Colors.divider,
         borderStyle: 'dashed',
     },
     uploadText: {
-        fontSize: 16,
+        fontSize: rf(16),
         fontWeight: 'bold',
+    },
+    receiptPreviewContainer: {
+        width: '100%',
+        height: verticalScale(180),
+        borderRadius: scale(12),
+        overflow: 'hidden',
+        backgroundColor: 'rgba(255,255,255,0.05)',
+        borderWidth: 1,
+        borderColor: Colors.divider,
+        position: 'relative',
+    },
+    receiptPreview: {
+        width: '100%',
+        height: '100%',
+        resizeMode: 'cover',
+    },
+    removeReceiptBtn: {
+        position: 'absolute',
+        top: scale(8),
+        right: scale(8),
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        borderRadius: scale(12),
     },
     submitButton: {
         backgroundColor: Colors.heritageGold,
-        height: 60,
-        borderRadius: 12,
+        height: verticalScale(60),
+        borderRadius: scale(12),
         justifyContent: 'center',
         alignItems: 'center',
-        marginTop: Spacing.xl,
-        marginBottom: 50,
+        marginTop: verticalScale(24),
+        marginBottom: verticalScale(50),
     },
     submitButtonText: {
         fontWeight: 'bold',
-        fontSize: 18,
+        fontSize: rf(18),
     },
     bottomNav: {
-        height: 80,
+        height: verticalScale(70),
         flexDirection: 'row',
         backgroundColor: 'rgba(0, 35, 28, 0.95)',
         borderTopWidth: 1,
         borderColor: Colors.divider,
-        paddingBottom: 20,
+        paddingBottom: verticalScale(10),
     },
     navItem: {
         flex: 1,
@@ -235,8 +279,8 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     navLabel: {
-        fontSize: 10,
-        marginTop: 4,
+        fontSize: rf(10),
+        marginTop: verticalScale(4),
         opacity: 0.8,
     },
     activeNavText: {

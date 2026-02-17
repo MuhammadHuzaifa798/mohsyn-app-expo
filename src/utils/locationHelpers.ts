@@ -1,29 +1,17 @@
-import { Platform, PermissionsAndroid, Alert } from 'react-native';
-import Geolocation from 'react-native-geolocation-service';
+import * as Location from 'expo-location';
+import { Alert } from 'react-native';
 
 /**
- * Request location permission on Android
+ * Request location permission
  */
 export const requestLocationPermission = async (): Promise<boolean> => {
-    if (Platform.OS === 'android') {
-        try {
-            const granted = await PermissionsAndroid.request(
-                PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
-                {
-                    title: 'Location Permission',
-                    message: 'App needs location permission to track your field service tasks',
-                    buttonNeutral: 'Ask Me Later',
-                    buttonNegative: 'Cancel',
-                    buttonPositive: 'OK',
-                }
-            );
-            return granted === PermissionsAndroid.RESULTS.GRANTED;
-        } catch (err) {
-            console.warn(err);
-            return false;
-        }
+    try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        return status === 'granted';
+    } catch (err) {
+        console.warn(err);
+        return false;
     }
-    return true;
 };
 
 /**
@@ -39,17 +27,12 @@ export const getCurrentLocation = (): Promise<{ latitude: number; longitude: num
                 return;
             }
 
-            Geolocation.getCurrentPosition(
-                (position) => {
-                    const { latitude, longitude } = position.coords;
-                    resolve({ latitude, longitude });
-                },
-                (error) => {
-                    console.warn('Geolocation Error:', error);
-                    resolve(null);
-                },
-                { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
-            );
+            const location = await Location.getCurrentPositionAsync({
+                accuracy: Location.Accuracy.High,
+            });
+
+            const { latitude, longitude } = location.coords;
+            resolve({ latitude, longitude });
         } catch (e) {
             console.error('Fatal Geolocation Error:', e);
             resolve(null);
@@ -64,28 +47,37 @@ export const watchLocation = (
     onUpdate: (location: { latitude: number; longitude: number }) => void,
     onError: (error: string) => void
 ): (() => void) => {
-    let watchId: number | null = null;
+    let subscription: Location.LocationSubscription | null = null;
 
-    try {
-        watchId = Geolocation.watchPosition(
-            (position) => {
-                const { latitude, longitude } = position.coords;
-                onUpdate({ latitude, longitude });
-            },
-            (error) => {
-                console.warn('Location Watch Error:', error);
-                onError(error.message);
-            },
-            { enableHighAccuracy: true, distanceFilter: 10, interval: 5000, fastestInterval: 2000 }
-        );
-    } catch (e) {
-        console.error('Failed to start watching location:', e);
-        onError('Hardware or native module error');
-    }
+    const startWatching = async () => {
+        try {
+            const hasPermission = await requestLocationPermission();
+            if (!hasPermission) {
+                onError('Permission denied');
+                return;
+            }
+
+            subscription = await Location.watchPositionAsync(
+                {
+                    accuracy: Location.Accuracy.High,
+                    distanceInterval: 10,
+                },
+                (location) => {
+                    const { latitude, longitude } = location.coords;
+                    onUpdate({ latitude, longitude });
+                }
+            );
+        } catch (e) {
+            console.error('Failed to start watching location:', e);
+            onError('Hardware or native module error');
+        }
+    };
+
+    startWatching();
 
     return () => {
-        if (watchId !== null) {
-            Geolocation.clearWatch(watchId);
+        if (subscription) {
+            subscription.remove();
         }
     };
 };

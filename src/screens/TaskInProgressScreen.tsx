@@ -7,21 +7,20 @@ import {
     ScrollView,
     TextInput,
     Dimensions,
-    SafeAreaView,
     Image,
     Platform,
     KeyboardAvoidingView,
 } from 'react-native';
-import Icon from 'react-native-vector-icons/Ionicons';
-import FAIcon from 'react-native-vector-icons/FontAwesome5';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import Icon from '@expo/vector-icons/Ionicons';
+import FAIcon from '@expo/vector-icons/FontAwesome5';
 import { Colors, Spacing, Fonts } from '../theme';
 import BrandText from '../components/BrandText';
 import BackgroundWrapper from '../components/BackgroundWrapper';
 import { takePhoto, pickImage, showUploadOptions, UploadedFile, startAudioRecording, playAudio, stopAudio } from '../utils/uploadHelpers';
 
 import { getCurrentLocation, watchLocation } from '../utils/locationHelpers';
-
-const { width } = Dimensions.get('window');
+import { scale, verticalScale, rf, wp, hp } from '../utils/responsiveHelpers';
 
 interface TaskInProgressScreenProps {
     task: any;
@@ -204,7 +203,7 @@ const TaskInProgressScreen: React.FC<TaskInProgressScreenProps> = ({ task, onBac
                             <View style={styles.detailRow}>
                                 <BrandText style={styles.detailLabel}>Priority:</BrandText>
                                 <View style={styles.priorityBadge}>
-                                    <Icon name="alert-circle" size={14} color={Colors.heritageGold} />
+                                    <Icon name="alert-circle" size={scale(14)} color={Colors.heritageGold} />
                                     <BrandText style={styles.priorityText}>High Priority</BrandText>
                                 </View>
                             </View>
@@ -217,7 +216,7 @@ const TaskInProgressScreen: React.FC<TaskInProgressScreenProps> = ({ task, onBac
 
                         <View style={styles.coordsCard}>
                             <View style={styles.coordsHeader}>
-                                <Icon name="location-outline" size={18} color={Colors.heritageGold} />
+                                <Icon name="location-outline" size={scale(18)} color={Colors.heritageGold} />
                                 <BrandText style={styles.coordsTitle}>Live GPS Coordinates</BrandText>
                             </View>
                             <View style={styles.coordsGrid}>
@@ -243,11 +242,11 @@ const TaskInProgressScreen: React.FC<TaskInProgressScreenProps> = ({ task, onBac
                         <View style={styles.taskInfoSection}>
                             <BrandText variant="headline" style={styles.sectionTitle}>Task Information</BrandText>
                             <View style={styles.bulletItem}>
-                                <Icon name="ellipse" size={6} color={Colors.white} style={styles.bulletIcon} />
+                                <Icon name="ellipse" size={scale(6)} color={Colors.white} style={styles.bulletIcon} />
                                 <BrandText style={styles.bulletText}>Perform maintenance on AC unit</BrandText>
                             </View>
                             <View style={styles.bulletItem}>
-                                <Icon name="ellipse" size={6} color={Colors.white} style={styles.bulletIcon} />
+                                <Icon name="ellipse" size={scale(6)} color={Colors.white} style={styles.bulletIcon} />
                                 <BrandText style={styles.bulletText}>Materials: Refrigerant, Pressure Gauge</BrandText>
                             </View>
                         </View>
@@ -263,7 +262,7 @@ const TaskInProgressScreen: React.FC<TaskInProgressScreenProps> = ({ task, onBac
                         <View style={styles.expenseCard}>
                             <BrandText style={styles.placeholderText}>Record your job-related expenses here. Capture receipts for Odoo reconciliation.</BrandText>
                             <TouchableOpacity style={styles.addExpenseButton} onPress={onLogExpenses}>
-                                <Icon name="add-circle-outline" size={24} color={Colors.white} />
+                                <Icon name="add-circle-outline" size={scale(24)} color={Colors.white} />
                                 <BrandText style={styles.addExpenseText}>Add New Expense</BrandText>
                             </TouchableOpacity>
                         </View>
@@ -278,7 +277,7 @@ const TaskInProgressScreen: React.FC<TaskInProgressScreenProps> = ({ task, onBac
                                 <View style={styles.chatHeader}>
                                     <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                                         <View style={styles.avatarMini}>
-                                            <Icon name="person" size={12} color="#666" />
+                                            <Icon name="person" size={scale(12)} color="#666" />
                                         </View>
                                         <BrandText style={styles.chatUser}>Sean Doherty</BrandText>
                                     </View>
@@ -297,8 +296,8 @@ const TaskInProgressScreen: React.FC<TaskInProgressScreenProps> = ({ task, onBac
                                             <BrandText style={styles.chatTime}>{formatMessageTime(file.timestamp)}</BrandText>
                                             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                                                 <BrandText style={styles.chatUser}>You</BrandText>
-                                                <View style={[styles.avatarMini, { marginRight: 0, marginLeft: 8 }]}>
-                                                    <Icon name="person" size={12} color="#666" />
+                                                <View style={[styles.avatarMini, { marginRight: 0, marginLeft: scale(8) }]}>
+                                                    <Icon name="person" size={scale(12)} color="#666" />
                                                 </View>
                                             </View>
                                         </View>
@@ -322,7 +321,7 @@ const TaskInProgressScreen: React.FC<TaskInProgressScreenProps> = ({ task, onBac
                                             >
                                                 <Icon
                                                     name={playingFileUri === file.uri ? 'stop-circle' : 'play-circle'}
-                                                    size={24}
+                                                    size={scale(24)}
                                                     color={playingFileUri === file.uri ? '#fff' : Colors.heritageGold}
                                                 />
                                                 <BrandText style={[
@@ -347,126 +346,144 @@ const TaskInProgressScreen: React.FC<TaskInProgressScreenProps> = ({ task, onBac
     return (
         <BackgroundWrapper>
             <SafeAreaView style={styles.safeArea}>
-                <KeyboardAvoidingView
-                    behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-                    style={{ flex: 1 }}
-                >
-                    <StatusBar barStyle="light-content" />
+                <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
 
-                    {/* Header */}
-                    <View style={styles.header}>
-                        <TouchableOpacity onPress={onBack} style={styles.backButton}>
-                            <Icon name="chevron-back" size={24} color={Colors.white} />
-                        </TouchableOpacity>
-                        <View style={styles.headerTitleContainer}>
-                            <BrandText variant="headline" style={styles.headerTitle}>TASK DETAIL</BrandText>
-                            <BrandText variant="headline" style={styles.headerDot}>•</BrandText>
-                            <BrandText variant="headline" style={styles.targetStatus}>IN PROGRESS</BrandText>
-                        </View>
-                        <View style={styles.backButton} />
+                {/* Header - Moved outside KeyboardAvoidingView to stay fixed */}
+                <View style={styles.header}>
+                    <TouchableOpacity onPress={onBack} style={styles.backButton}>
+                        <Icon name="chevron-back" size={scale(24)} color={Colors.white} />
+                    </TouchableOpacity>
+                    <View style={styles.headerTitleContainer}>
+                        <BrandText variant="headline" style={styles.headerTitle}>TASK DETAIL</BrandText>
+                        <BrandText variant="headline" style={styles.headerDot}>•</BrandText>
+                        <BrandText variant="headline" style={styles.targetStatus}>IN PROGRESS</BrandText>
                     </View>
+                    <View style={styles.backButton} />
+                </View>
 
-                    {/* Task Context Header */}
-                    <View style={styles.contextHeader}>
-                        <BrandText variant="headline" style={styles.mainTitle}>Repair AC Unit</BrandText>
-                        <View style={styles.userSummaryRow}>
-                            <View style={styles.userAvatar}>
-                                <Icon name="person" size={20} color="#666" />
-                            </View>
-                            <View>
-                                <BrandText style={styles.userNameText}>Sarah Williamson</BrandText>
-                                <View style={styles.locationSmallRow}>
-                                    <Icon name="location-outline" size={12} color={Colors.heritageGold} />
-                                    <BrandText style={styles.locationSmallText}>123 Pine St, Springfield</BrandText>
+                <KeyboardAvoidingView
+                    behavior="padding"
+                    style={{ flex: 1 }}
+                    keyboardVerticalOffset={0}
+                >
+
+                    {/* Main Content Area */}
+                    <ScrollView
+                        ref={scrollRef}
+                        style={styles.scrollArea}
+                        keyboardShouldPersistTaps="handled"
+                        onContentSizeChange={() => activeTab === 'Chatter' && scrollRef.current?.scrollToEnd({ animated: true })}
+                        contentContainerStyle={styles.scrollContent}
+                    >
+                        {/* Task Context moved inside scrollable area if screens are small */}
+                        <View style={styles.contextHeader}>
+                            <BrandText variant="headline" style={styles.mainTitle}>Repair AC Unit</BrandText>
+                            <View style={styles.userSummaryRow}>
+                                <View style={styles.userAvatar}>
+                                    <Icon name="person" size={scale(20)} color="#666" />
+                                </View>
+                                <View>
+                                    <BrandText style={styles.userNameText}>Sarah Williamson</BrandText>
+                                    <View style={styles.locationSmallRow}>
+                                        <Icon name="location-outline" size={scale(12)} color={Colors.heritageGold} />
+                                        <BrandText style={styles.locationSmallText}>123 Pine St, Springfield</BrandText>
+                                    </View>
                                 </View>
                             </View>
+
+                            {/* Navigation Tabs */}
+                            <View style={styles.tabContainer}>
+                                {(['Details', 'Expenses', 'Chatter'] as Tab[]).map((tab) => (
+                                    <TouchableOpacity
+                                        key={tab}
+                                        style={[styles.tabItem, activeTab === tab && styles.tabItemActive]}
+                                        onPress={() => setActiveTab(tab)}
+                                    >
+                                        <BrandText style={[styles.tabText, activeTab === tab && styles.tabTextActive]}>
+                                            {tab}
+                                        </BrandText>
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
                         </View>
 
-                        {/* Navigation Tabs */}
-                        <View style={styles.tabContainer}>
-                            {(['Details', 'Expenses', 'Chatter'] as Tab[]).map((tab) => (
-                                <TouchableOpacity
-                                    key={tab}
-                                    style={[styles.tabItem, activeTab === tab && styles.tabItemActive]}
-                                    onPress={() => setActiveTab(tab)}
-                                >
-                                    <BrandText style={[styles.tabText, activeTab === tab && styles.tabTextActive]}>
-                                        {tab}
-                                    </BrandText>
-                                </TouchableOpacity>
-                            ))}
-                        </View>
-                    </View>
-
-                    <ScrollView ref={scrollRef} style={styles.scrollArea}>
                         {renderTabContent()}
                     </ScrollView>
 
-                    {/* pinned Chat Input when in Chatter tab - Pinned to bottom above footer */}
+                    {/* Chat Input moved OUTSIDE ScrollView for standard keyboard handling */}
                     {activeTab === 'Chatter' && (
-                        <View style={[styles.chatInputWrapper, { marginHorizontal: Spacing.l, marginBottom: 16 }]}>
-                            <TouchableOpacity style={styles.chatIconBtn} onPress={handleUploadPress}>
-                                <Icon name="camera-outline" size={22} color="rgba(255,255,255,0.6)" />
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                                style={[styles.chatIconBtn, isRecording && styles.recordingActive]}
-                                onPress={handleVoicePress}
-                            >
-                                <Icon
-                                    name={isRecording ? "stop-circle" : "mic-outline"}
-                                    size={22}
-                                    color={isRecording ? Colors.heritageGold : "rgba(255,255,255,0.6)"}
+                        <View style={styles.chatInputContainer}>
+                            <View style={styles.chatInputWrapper}>
+                                <TouchableOpacity style={styles.chatIconBtn} onPress={handleUploadPress}>
+                                    <Icon name="camera-outline" size={scale(22)} color="rgba(255,255,255,0.6)" />
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    style={[styles.chatIconBtn, isRecording && styles.recordingActive]}
+                                    onPress={handleVoicePress}
+                                >
+                                    <Icon
+                                        name={isRecording ? "stop-circle" : "mic-outline"}
+                                        size={scale(22)}
+                                        color={isRecording ? Colors.heritageGold : "rgba(255,255,255,0.6)"}
+                                    />
+                                </TouchableOpacity>
+                                <TextInput
+                                    style={styles.chatInputField}
+                                    placeholder={isRecording ? "Recording..." : "Write a message..."}
+                                    placeholderTextColor={isRecording ? Colors.heritageGold : "rgba(255,255,255,0.4)"}
+                                    editable={!isRecording}
+                                    value={messageText}
+                                    onChangeText={setMessageText}
+                                    multiline
+                                    cursorColor={Colors.heritageGold}
+                                    selectionColor={Colors.heritageGold}
                                 />
-                            </TouchableOpacity>
-                            <TextInput
-                                style={styles.chatInputField}
-                                placeholder={isRecording ? "Recording..." : "Write a message..."}
-                                placeholderTextColor={isRecording ? Colors.heritageGold : "rgba(255,255,255,0.4)"}
-                                editable={!isRecording}
-                                value={messageText}
-                                onChangeText={setMessageText}
-                            />
-                            <TouchableOpacity style={styles.sendButton} onPress={handleSendMessage}>
-                                <Icon name="send" size={20} color={Colors.heritageGold} />
-                            </TouchableOpacity>
+                                <TouchableOpacity style={styles.sendButton} onPress={handleSendMessage}>
+                                    <Icon name="send" size={scale(20)} color={Colors.heritageGold} />
+                                </TouchableOpacity>
+                            </View>
                         </View>
                     )}
 
-                    {/* Persistent Footer Timer & Completion */}
-                    <View style={styles.persistentFooter}>
-                        <View style={styles.timerContentRow}>
-                            <Icon name="time-outline" size={20} color={Colors.white} />
-                            <BrandText style={styles.timerDisplayText}>{timer} In Progress</BrandText>
+
+
+                    {/* Persistent Footer Timer & Completion - Hidden in Chatter for extra space */}
+                    {activeTab !== 'Chatter' && (
+                        <View style={styles.persistentFooter}>
+                            <View style={styles.timerContentRow}>
+                                <Icon name="time-outline" size={scale(20)} color={Colors.white} />
+                                <BrandText style={styles.timerDisplayText}>{timer} In Progress</BrandText>
+                            </View>
+                            <TouchableOpacity style={styles.finalCompleteBtn} onPress={onComplete}>
+                                <BrandText style={styles.finalCompleteText}>COMPLETE TASK</BrandText>
+                            </TouchableOpacity>
                         </View>
-                        <TouchableOpacity style={styles.finalCompleteBtn} onPress={onComplete}>
-                            <BrandText style={styles.finalCompleteText}>COMPLETE TASK</BrandText>
-                        </TouchableOpacity>
-                    </View>
+                    )}
 
                     {/* Bottom Nav */}
                     {activeTab !== 'Chatter' && (
                         <View style={styles.footerNav}>
                             <TouchableOpacity style={styles.navLink} onPress={onDashboard}>
-                                <Icon name="home-outline" size={24} color={Colors.white} />
+                                <Icon name="home-outline" size={scale(24)} color={Colors.white} />
                                 <BrandText style={styles.navLabel}>Dashboard</BrandText>
                             </TouchableOpacity>
                             <TouchableOpacity style={styles.navLink}>
-                                <FAIcon name="file-alt" size={22} color={Colors.heritageGold} />
+                                <FAIcon name="file-alt" size={scale(22)} color={Colors.heritageGold} />
                                 <BrandText style={[styles.navLabel, styles.activeLabel]}>Tasks</BrandText>
                             </TouchableOpacity>
                             <TouchableOpacity style={styles.navLink} onPress={onCalendar}>
-                                <Icon name="calendar-outline" size={24} color={Colors.white} />
+                                <Icon name="calendar-outline" size={scale(24)} color={Colors.white} />
                                 <BrandText style={styles.navLabel}>Calendar</BrandText>
                             </TouchableOpacity>
                             <TouchableOpacity style={styles.navLink} onPress={onProfile}>
-                                <Icon name="settings-outline" size={24} color={Colors.white} />
+                                <Icon name="settings-outline" size={scale(24)} color={Colors.white} />
                                 <BrandText style={styles.navLabel}>Settings</BrandText>
                             </TouchableOpacity>
                         </View>
                     )}
                 </KeyboardAvoidingView>
             </SafeAreaView>
-        </BackgroundWrapper>
+        </BackgroundWrapper >
     );
 };
 
@@ -475,94 +492,94 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     header: {
-        height: 100,
-        paddingTop: 40,
+        height: verticalScale(55),
+        paddingTop: verticalScale(10),
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        paddingHorizontal: Spacing.m,
+        paddingHorizontal: wp(5),
     },
     backButton: {
-        width: 40,
+        width: scale(40),
     },
     headerTitleContainer: {
         flexDirection: 'row',
         alignItems: 'center',
     },
     headerTitle: {
-        fontSize: 14,
+        fontSize: rf(16),
         fontWeight: 'bold',
         letterSpacing: 1,
         color: 'rgba(255,255,255,0.7)',
     },
     headerDot: {
-        fontSize: 14,
-        marginHorizontal: 8,
+        fontSize: rf(16),
+        marginHorizontal: scale(8),
         color: Colors.heritageGold,
     },
     targetStatus: {
-        fontSize: 14,
+        fontSize: rf(16),
         fontWeight: 'bold',
         letterSpacing: 1,
         color: Colors.heritageGold,
     },
     contextHeader: {
-        paddingHorizontal: Spacing.l,
-        paddingTop: Spacing.s,
+        paddingHorizontal: wp(6),
+        paddingTop: verticalScale(4),
     },
     mainTitle: {
-        fontSize: 26,
+        fontSize: rf(24),
         fontWeight: 'bold',
-        marginBottom: 12,
+        marginBottom: verticalScale(12),
     },
     userSummaryRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: 20,
+        marginBottom: verticalScale(20),
     },
     userAvatar: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
+        width: scale(40),
+        height: scale(40),
+        borderRadius: scale(20),
         backgroundColor: 'rgba(255,255,255,0.1)',
         justifyContent: 'center',
         alignItems: 'center',
-        marginRight: 12,
+        marginRight: scale(12),
         borderWidth: 1,
         borderColor: Colors.divider,
     },
     userNameText: {
-        fontSize: 16,
+        fontSize: rf(16),
         fontWeight: 'bold',
     },
     locationSmallRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginTop: 2,
+        marginTop: verticalScale(2),
     },
     locationSmallText: {
-        fontSize: 12,
+        fontSize: rf(12),
         opacity: 0.6,
-        marginLeft: 4,
+        marginLeft: scale(4),
     },
     tabContainer: {
         flexDirection: 'row',
         backgroundColor: 'rgba(0,0,0,0.2)',
-        borderRadius: 12,
-        padding: 4,
-        marginBottom: 8,
+        borderRadius: scale(12),
+        padding: scale(4),
+        marginBottom: verticalScale(8),
     },
     tabItem: {
         flex: 1,
-        paddingVertical: 10,
+        paddingVertical: verticalScale(10),
         alignItems: 'center',
-        borderRadius: 8,
+        borderRadius: scale(8),
     },
     tabItemActive: {
         backgroundColor: Colors.heritageGold,
     },
     tabText: {
-        fontSize: 14,
+        fontSize: rf(14),
         opacity: 0.6,
         fontWeight: '500',
     },
@@ -574,13 +591,17 @@ const styles = StyleSheet.create({
     scrollArea: {
         flex: 1,
     },
+    scrollContent: {
+        flexGrow: 1,
+        paddingBottom: verticalScale(20),
+    },
     tabContent: {
-        padding: Spacing.l,
+        padding: wp(6),
     },
     infoGrid: {
         backgroundColor: Colors.cardBackground,
-        borderRadius: 16,
-        padding: Spacing.m,
+        borderRadius: scale(16),
+        padding: scale(16),
         borderWidth: 1,
         borderColor: Colors.divider,
     },
@@ -588,14 +609,14 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingVertical: 12,
+        paddingVertical: verticalScale(12),
     },
     detailLabel: {
-        fontSize: 14,
+        fontSize: rf(14),
         opacity: 0.6,
     },
     detailValue: {
-        fontSize: 14,
+        fontSize: rf(14),
         fontWeight: 'bold',
     },
     divider: {
@@ -606,53 +627,53 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: 'rgba(232, 131, 47, 0.1)',
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderRadius: 4,
+        paddingHorizontal: scale(8),
+        paddingVertical: verticalScale(4),
+        borderRadius: scale(4),
     },
     priorityText: {
         color: Colors.heritageGold,
-        fontSize: 12,
+        fontSize: rf(12),
         fontWeight: 'bold',
-        marginLeft: 6,
+        marginLeft: scale(6),
     },
     taskInfoSection: {
-        marginTop: 24,
+        marginTop: verticalScale(24),
     },
     sectionTitle: {
-        fontSize: 18,
+        fontSize: rf(18),
         fontWeight: 'bold',
-        marginBottom: 16,
+        marginBottom: verticalScale(16),
     },
     bulletItem: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: 12,
+        marginBottom: verticalScale(12),
     },
     bulletIcon: {
-        marginRight: 12,
+        marginRight: scale(12),
         opacity: 0.5,
     },
     bulletText: {
-        fontSize: 14,
+        fontSize: rf(14),
         opacity: 0.8,
     },
     logExpenseInnerButton: {
         backgroundColor: Colors.heritageGold,
-        height: 50,
-        borderRadius: 12,
+        height: verticalScale(50),
+        borderRadius: scale(12),
         justifyContent: 'center',
         alignItems: 'center',
-        marginTop: 32,
+        marginTop: verticalScale(32),
     },
     logExpenseText: {
         fontWeight: 'bold',
-        fontSize: 16,
+        fontSize: rf(16),
     },
     expenseCard: {
         backgroundColor: Colors.cardBackground,
-        padding: 24,
-        borderRadius: 16,
+        padding: scale(24),
+        borderRadius: scale(16),
         borderWidth: 1,
         borderColor: Colors.divider,
         alignItems: 'center',
@@ -660,126 +681,134 @@ const styles = StyleSheet.create({
     placeholderText: {
         textAlign: 'center',
         opacity: 0.5,
-        lineHeight: 20,
-        marginBottom: 24,
+        lineHeight: rf(20),
+        marginBottom: verticalScale(24),
     },
     addExpenseButton: {
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: 'rgba(255,255,255,0.05)',
-        paddingHorizontal: 20,
-        paddingVertical: 12,
-        borderRadius: 12,
+        paddingHorizontal: scale(20),
+        paddingVertical: verticalScale(12),
+        borderRadius: scale(12),
         borderWidth: 1,
         borderColor: Colors.divider,
     },
     addExpenseText: {
         fontWeight: 'bold',
-        marginLeft: 10,
+        marginLeft: scale(10),
     },
     chatList: {
-        gap: 20,
+        gap: verticalScale(20),
     },
     chatMessage: {
         alignSelf: 'flex-start',
-        maxWidth: '80%',
-        backgroundColor: '#1A302B',
-        padding: 14,
-        borderTopLeftRadius: 4,
-        borderTopRightRadius: 20,
-        borderBottomLeftRadius: 20,
-        borderBottomRightRadius: 20,
+        maxWidth: '85%',
+        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+        padding: scale(14),
+        borderTopLeftRadius: scale(4),
+        borderTopRightRadius: scale(20),
+        borderBottomLeftRadius: scale(20),
+        borderBottomRightRadius: scale(20),
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.05)',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 2,
+        borderColor: 'rgba(255,255,255,0.08)',
+        marginBottom: verticalScale(12),
     },
     chatMessageSent: {
         alignSelf: 'flex-end',
-        maxWidth: '80%',
-        backgroundColor: 'rgba(232, 131, 47, 0.15)',
-        padding: 14,
-        borderTopLeftRadius: 20,
-        borderTopRightRadius: 4,
-        borderBottomLeftRadius: 20,
-        borderBottomRightRadius: 20,
+        maxWidth: '85%',
+        backgroundColor: 'rgba(232, 131, 47, 0.12)',
+        padding: scale(14),
+        borderTopLeftRadius: scale(20),
+        borderTopRightRadius: scale(4),
+        borderBottomLeftRadius: scale(20),
+        borderBottomRightRadius: scale(20),
         borderWidth: 1,
         borderColor: 'rgba(232, 131, 47, 0.2)',
+        marginBottom: verticalScale(12),
     },
     chatHeader: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: 8,
+        marginBottom: verticalScale(8),
         justifyContent: 'space-between',
     },
     avatarMini: {
-        width: 22,
-        height: 22,
-        borderRadius: 11,
+        width: scale(22),
+        height: scale(22),
+        borderRadius: scale(11),
         backgroundColor: 'rgba(255,255,255,0.15)',
         justifyContent: 'center',
         alignItems: 'center',
-        marginRight: 8,
+        marginRight: scale(8),
     },
     chatUser: {
-        fontSize: 11,
+        fontSize: rf(11),
         fontWeight: 'bold',
         color: Colors.heritageGold,
         textTransform: 'uppercase',
         letterSpacing: 0.5,
     },
     chatTime: {
-        fontSize: 10,
+        fontSize: rf(10),
         color: 'rgba(255,255,255,0.4)',
     },
     chatText: {
-        fontSize: 14,
-        lineHeight: 20,
+        fontSize: rf(14),
+        lineHeight: rf(20),
         color: '#E0E0E0',
     },
     fileAttachment: {
         flexDirection: 'row',
         alignItems: 'center',
-        padding: 8,
+        padding: scale(8),
         backgroundColor: 'rgba(255,255,255,0.05)',
-        borderRadius: 8,
+        borderRadius: scale(8),
     },
     fileName: {
-        fontSize: 12,
-        marginLeft: 8,
+        fontSize: rf(12),
+        marginLeft: scale(8),
+    },
+    chatInputContainer: {
+        paddingHorizontal: wp(4),
+        paddingBottom: Platform.OS === 'ios' ? verticalScale(20) : verticalScale(6),
+        paddingTop: verticalScale(6),
+        backgroundColor: 'transparent',
     },
     chatInputWrapper: {
         flexDirection: 'row',
         alignItems: 'center',
-        padding: 8,
-        backgroundColor: Colors.inputBackground,
-        borderRadius: 16,
-        marginTop: 20,
+        paddingVertical: scale(5),
+        paddingHorizontal: scale(12),
+        backgroundColor: 'rgba(255, 255, 255, 0.08)',
+        borderRadius: scale(24),
         borderWidth: 1,
-        borderColor: Colors.divider,
+        borderColor: 'rgba(255, 255, 255, 0.15)',
     },
     chatIconBtn: {
-        padding: 8,
+        padding: scale(6),
+        marginRight: scale(4),
     },
     recordingActive: {
         backgroundColor: 'rgba(232, 131, 47, 0.2)',
-        borderRadius: 8,
+        borderRadius: scale(12),
     },
     chatInputField: {
         flex: 1,
         color: Colors.white,
-        fontSize: 14,
-        paddingHorizontal: 12,
+        fontSize: rf(14),
+        paddingVertical: verticalScale(8),
+        paddingHorizontal: scale(8),
+        maxHeight: verticalScale(100),
+        textAlignVertical: 'center',
     },
     sendButton: {
-        padding: 8,
+        padding: scale(8),
+        marginLeft: scale(4),
     },
     persistentFooter: {
-        paddingHorizontal: Spacing.l,
-        paddingVertical: Spacing.m,
+        paddingHorizontal: wp(6),
+        paddingVertical: verticalScale(16),
         backgroundColor: 'rgba(0,0,0,0.4)',
         borderTopWidth: 1,
         borderTopColor: Colors.divider,
@@ -788,33 +817,33 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        marginBottom: 10,
+        marginBottom: verticalScale(10),
     },
     timerDisplayText: {
-        fontSize: 18,
+        fontSize: rf(18),
         fontWeight: 'bold',
-        marginLeft: 10,
+        marginLeft: scale(10),
         letterSpacing: 0.5,
     },
     finalCompleteBtn: {
         backgroundColor: Colors.heritageGold,
-        height: 48,
-        borderRadius: 12,
+        height: verticalScale(48),
+        borderRadius: scale(12),
         justifyContent: 'center',
         alignItems: 'center',
     },
     finalCompleteText: {
         fontWeight: 'bold',
-        fontSize: 16,
+        fontSize: rf(16),
         letterSpacing: 1,
     },
     footerNav: {
-        height: 80,
+        height: verticalScale(70),
         flexDirection: 'row',
         backgroundColor: 'rgba(0, 35, 28, 0.95)',
         borderTopWidth: 1,
         borderColor: Colors.divider,
-        paddingBottom: 20,
+        paddingBottom: verticalScale(10),
     },
     navLink: {
         flex: 1,
@@ -822,8 +851,8 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     navLabel: {
-        fontSize: 10,
-        marginTop: 4,
+        fontSize: rf(10),
+        marginTop: verticalScale(4),
         opacity: 0.6,
     },
     activeLabel: {
@@ -832,26 +861,26 @@ const styles = StyleSheet.create({
         opacity: 1,
     },
     imageAttachment: {
-        borderRadius: 12,
+        borderRadius: scale(12),
         overflow: 'hidden',
         backgroundColor: 'rgba(0,0,0,0.2)',
     },
     uploadedImage: {
-        width: 200,
-        height: 150,
-        borderRadius: 8,
+        width: scale(200),
+        height: verticalScale(150),
+        borderRadius: scale(8),
     },
     imageCaption: {
-        fontSize: 11,
+        fontSize: rf(11),
         color: 'rgba(255,255,255,0.6)',
-        marginTop: 6,
-        paddingHorizontal: 4,
-        paddingBottom: 4,
+        marginTop: verticalScale(6),
+        paddingHorizontal: scale(4),
+        paddingBottom: scale(4),
     },
     audioAttachment: {
-        paddingVertical: 12,
-        paddingHorizontal: 16,
-        borderRadius: 12,
+        paddingVertical: verticalScale(12),
+        paddingHorizontal: scale(16),
+        borderRadius: scale(12),
         borderWidth: 1,
         borderColor: Colors.heritageGold,
     },
@@ -863,21 +892,21 @@ const styles = StyleSheet.create({
     },
     coordsCard: {
         backgroundColor: 'rgba(255, 255, 255, 0.05)',
-        borderRadius: 16,
-        padding: 20,
-        marginTop: 24,
+        borderRadius: scale(16),
+        padding: scale(20),
+        marginTop: verticalScale(24),
         borderWidth: 1,
         borderColor: Colors.divider,
     },
     coordsHeader: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: 16,
+        marginBottom: verticalScale(16),
     },
     coordsTitle: {
-        fontSize: 16,
+        fontSize: rf(16),
         fontWeight: 'bold',
-        marginLeft: 8,
+        marginLeft: scale(8),
         color: Colors.white,
     },
     coordsGrid: {
@@ -890,29 +919,29 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     coordLabel: {
-        fontSize: 12,
+        fontSize: rf(12),
         color: 'rgba(255, 255, 255, 0.5)',
-        marginBottom: 4,
+        marginBottom: verticalScale(4),
         textTransform: 'uppercase',
         letterSpacing: 1,
     },
     coordValue: {
-        fontSize: 18,
+        fontSize: rf(18),
         fontWeight: 'bold',
         color: Colors.heritageGold,
         fontFamily: 'monospace',
     },
     coordDivider: {
         width: 1,
-        height: 40,
+        height: verticalScale(40),
         backgroundColor: Colors.divider,
-        marginHorizontal: 10,
+        marginHorizontal: scale(10),
     },
     coordStatus: {
-        fontSize: 12,
+        fontSize: rf(12),
         color: 'rgba(255, 255, 255, 0.4)',
         textAlign: 'center',
-        marginTop: 12,
+        marginTop: verticalScale(12),
         fontStyle: 'italic',
     },
 });

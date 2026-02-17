@@ -1,14 +1,6 @@
-import { launchCamera, launchImageLibrary, CameraOptions, ImageLibraryOptions, ImagePickerResponse } from 'react-native-image-picker';
-import { Platform, PermissionsAndroid, Alert } from 'react-native';
-import AudioRecorderPlayer, {
-    AVEncoderAudioQualityIOSType,
-    AVEncodingOption,
-    AudioEncoderAndroidType,
-    AudioSet,
-    AudioSourceAndroidType,
-    PlayBackType,
-    RecordBackType,
-} from 'react-native-audio-recorder-player';
+import * as ImagePicker from 'expo-image-picker';
+import { Alert } from 'react-native';
+import { Audio } from 'expo-av';
 
 export interface UploadedFile {
     uri: string;
@@ -20,136 +12,91 @@ export interface UploadedFile {
 }
 
 /**
- * Request camera permission on Android
+ * Request camera permission
  */
 export const requestCameraPermission = async (): Promise<boolean> => {
-    if (Platform.OS === 'android') {
-        try {
-            const granted = await PermissionsAndroid.request(
-                PermissionsAndroid.PERMISSIONS.CAMERA,
-                {
-                    title: 'Camera Permission',
-                    message: 'App needs camera permission to take photos',
-                    buttonNeutral: 'Ask Me Later',
-                    buttonNegative: 'Cancel',
-                    buttonPositive: 'OK',
-                }
-            );
-            return granted === PermissionsAndroid.RESULTS.GRANTED;
-        } catch (err) {
-            console.warn(err);
-            return false;
-        }
+    try {
+        const { status } = await ImagePicker.requestCameraPermissionsAsync();
+        return status === 'granted';
+    } catch (err) {
+        console.warn(err);
+        return false;
     }
-    return true;
 };
 
 /**
- * Request audio recording permission on Android
+ * Request audio recording permission
  */
 export const requestAudioPermission = async (): Promise<boolean> => {
-    if (Platform.OS === 'android') {
-        try {
-            const permissions = [PermissionsAndroid.PERMISSIONS.RECORD_AUDIO];
-
-            // Add storage permissions only for older Android versions
-            if (Platform.Version < 33) {
-                permissions.push(PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE);
-                permissions.push(PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE);
-            }
-
-            const grants = await PermissionsAndroid.requestMultiple(permissions);
-
-            // Only strict requirement is RECORD_AUDIO
-            return grants[PermissionsAndroid.PERMISSIONS.RECORD_AUDIO] === PermissionsAndroid.RESULTS.GRANTED;
-        } catch (err) {
-            console.warn(err);
-            return false;
-        }
+    try {
+        const { status } = await Audio.requestPermissionsAsync();
+        return status === 'granted';
+    } catch (err) {
+        console.warn(err);
+        return false;
     }
-    return true;
 };
 
 /**
- * Parse image picker response and return UploadedFile or null
+ * Launch camera to take a photo
  */
-const parseImagePickerResponse = (response: ImagePickerResponse): UploadedFile | null => {
-    if (response.didCancel) {
-        console.log('User cancelled image picker');
+export const takePhoto = async (): Promise<UploadedFile | null> => {
+    const hasPermission = await requestCameraPermission();
+    if (!hasPermission) {
+        Alert.alert('Permission Denied', 'Camera permission is required to take photos');
         return null;
     }
 
-    if (response.errorCode) {
-        console.error('ImagePicker Error:', response.errorCode, response.errorMessage);
-        Alert.alert('Error', response.errorMessage || 'Failed to process image');
+    const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        quality: 0.8,
+    });
+
+    if (result.canceled || !result.assets || result.assets.length === 0) {
         return null;
     }
 
-    const assets = response.assets;
-    if (!assets || assets.length === 0) {
-        console.log('No assets returned');
-        return null;
-    }
-
-    const asset = assets[0];
-    if (!asset || !asset.uri) {
-        console.log('No URI in asset');
-        return null;
-    }
-
+    const asset = result.assets[0];
     return {
         uri: asset.uri,
-        type: asset.type || 'image/jpeg',
+        type: asset.mimeType || 'image/jpeg',
         name: asset.fileName || `image_${Date.now()}.jpg`,
         size: asset.fileSize,
     };
 };
 
 /**
- * Launch camera to take a photo using callback
+ * Pick an image from gallery
  */
-export const takePhoto = (): Promise<UploadedFile | null> => {
-    return new Promise(async (resolve) => {
-        const hasPermission = await requestCameraPermission();
-        if (!hasPermission) {
-            Alert.alert('Permission Denied', 'Camera permission is required to take photos');
-            resolve(null);
-            return;
-        }
+export const pickImage = async (): Promise<UploadedFile | null> => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+        Alert.alert('Permission Denied', 'Media library permission is required to pick photos');
+        return null;
+    }
 
-        const options: CameraOptions = {
-            mediaType: 'photo',
-            quality: 0.8,
-            saveToPhotos: true,
-            cameraType: 'back',
-        };
-
-        launchCamera(options, (response: ImagePickerResponse) => {
-            const file = parseImagePickerResponse(response);
-            resolve(file);
-        });
+    const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        quality: 0.8,
+        selectionLimit: 1,
     });
+
+    if (result.canceled || !result.assets || result.assets.length === 0) {
+        return null;
+    }
+
+    const asset = result.assets[0];
+    return {
+        uri: asset.uri,
+        type: asset.mimeType || 'image/jpeg',
+        name: asset.fileName || `image_${Date.now()}.jpg`,
+        size: asset.fileSize,
+    };
 };
 
-/**
- * Pick an image from gallery using callback
- */
-export const pickImage = (): Promise<UploadedFile | null> => {
-    return new Promise((resolve) => {
-        const options: ImageLibraryOptions = {
-            mediaType: 'photo',
-            quality: 0.8,
-            selectionLimit: 1,
-        };
-
-        launchImageLibrary(options, (response: ImagePickerResponse) => {
-            const file = parseImagePickerResponse(response);
-            resolve(file);
-        });
-    });
-};
-
-const audioRecorderPlayer = new AudioRecorderPlayer();
+let recording: Audio.Recording | null = null;
 
 /**
  * Start audio recording
@@ -160,39 +107,36 @@ export const startAudioRecording = async (
 ): Promise<{ stop: () => Promise<UploadedFile | null> } | null> => {
     const hasPermission = await requestAudioPermission();
     if (!hasPermission) {
-        // Just try anyway for newer Android versions where permissions flow is different
-        // or let the error handler catch it
+        onError('Permission denied');
+        return null;
     }
 
     try {
-        const audioSet: AudioSet = {
-            AudioEncoderAndroid: AudioEncoderAndroidType.AAC,
-            AudioSourceAndroid: AudioSourceAndroidType.MIC,
-            AVEncoderAudioQualityKeyIOS: AVEncoderAudioQualityIOSType.high,
-            AVNumberOfChannelsKeyIOS: 2,
-            AVFormatIDKeyIOS: AVEncodingOption.aac,
-        };
-
-        const result = await audioRecorderPlayer.startRecorder(undefined, audioSet);
-        audioRecorderPlayer.addRecordBackListener((e: RecordBackType) => {
-            // console.log('record-back', e);
-            return;
+        await Audio.setAudioModeAsync({
+            allowsRecordingIOS: true,
+            playsInSilentModeIOS: true,
         });
 
+        const { recording: newRecording } = await Audio.Recording.createAsync(
+            Audio.RecordingOptionsPresets.HIGH_QUALITY
+        );
+        recording = newRecording;
         onRecordingStarted();
 
         return {
             stop: async (): Promise<UploadedFile | null> => {
-                const result = await audioRecorderPlayer.stopRecorder();
-                audioRecorderPlayer.removeRecordBackListener();
+                if (!recording) return null;
 
-                // Calculate duration if possible or just use a placeholder
-                // The result is the file path
+                await recording.stopAndUnloadAsync();
+                const uri = recording.getURI();
+                recording = null;
+
+                if (!uri) return null;
 
                 const file: UploadedFile = {
-                    uri: result,
-                    type: 'audio/mp4', // usually mp4/aac on android
-                    name: `Voice Note.m4a`, // or .mp4
+                    uri: uri,
+                    type: 'audio/m4a',
+                    name: `Voice Note.m4a`,
                     size: undefined,
                 };
 
@@ -206,6 +150,8 @@ export const startAudioRecording = async (
     }
 };
 
+let sound: Audio.Sound | null = null;
+
 /**
  * Play audio file
  */
@@ -215,28 +161,39 @@ export const playAudio = (
     onEnd: () => void,
     onError: (error: string) => void
 ): { stop: () => void } => {
-    (async () => {
+    const play = async () => {
         try {
-            await audioRecorderPlayer.stopPlayer(); // Ensure stopped
-            const msg = await audioRecorderPlayer.startPlayer(uri);
-            audioRecorderPlayer.addPlayBackListener((e: PlayBackType) => {
-                if (e.currentPosition === e.duration) {
-                    audioRecorderPlayer.stopPlayer();
+            if (sound) {
+                await sound.unloadAsync();
+            }
+
+            const { sound: newSound } = await Audio.Sound.createAsync(
+                { uri },
+                { shouldPlay: true }
+            );
+            sound = newSound;
+
+            sound.setOnPlaybackStatusUpdate((status) => {
+                if (status.isLoaded && status.didJustFinish) {
                     onEnd();
                 }
             });
+
             onStart();
         } catch (error: any) {
             console.log('play error', error);
             onError(error.message);
         }
-    })();
+    };
+
+    play();
 
     return {
         stop: async () => {
-            await audioRecorderPlayer.stopPlayer();
-            audioRecorderPlayer.removePlayBackListener();
-            onEnd();
+            if (sound) {
+                await sound.stopAsync();
+                onEnd();
+            }
         }
     };
 };
@@ -245,8 +202,9 @@ export const playAudio = (
  * Stop any playing audio
  */
 export const stopAudio = async () => {
-    await audioRecorderPlayer.stopPlayer();
-    audioRecorderPlayer.removePlayBackListener();
+    if (sound) {
+        await sound.stopAsync();
+    }
 };
 
 /**

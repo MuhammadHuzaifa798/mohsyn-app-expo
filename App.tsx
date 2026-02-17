@@ -1,4 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { StatusBar, View } from 'react-native';
+import { NavigationContainer, DarkTheme } from '@react-navigation/native';
+import { createStackNavigator } from '@react-navigation/stack';
+import * as Location from 'expo-location';
+import { Colors } from './src/theme';
+
 import LoginScreen from './src/screens/LoginScreen';
 import DashboardScreen from './src/screens/DashboardScreen';
 import MyTasksScreen from './src/screens/MyTasksScreen';
@@ -9,221 +15,193 @@ import ReimbursementScreen from './src/screens/ReimbursementScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 import CalendarScreen from './src/screens/CalendarScreen';
 import LocationPermissionScreen from './src/screens/LocationPermissionScreen';
-import { StatusBar, PermissionsAndroid, Platform, View } from 'react-native';
 
-type Screen = 'Login' | 'Dashboard' | 'MyTasks' | 'TaskDetail' | 'TaskInProgress' | 'LogExpenses' | 'Reimbursement' | 'Profile' | 'Calendar';
+import { TaskProvider, useTasks } from './src/hooks/useTasks';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
-interface Task {
-  id: string;
-  title: string;
-  company: string;
-  location?: string;
-  time?: string;
-  date: string;
-  status: string;
-  statusColor: string;
-  startedAt?: string;
-}
+export type RootStackParamList = {
+  Login: undefined;
+  Dashboard: undefined;
+  MyTasks: undefined;
+  Calendar: undefined;
+  TaskDetail: { taskId: string };
+  TaskInProgress: { taskId: string };
+  LogExpenses: undefined;
+  Reimbursement: { amount: string };
+  Profile: undefined;
+  LocationPermission: undefined;
+};
 
-const initialTasks: Task[] = [
-  {
-    id: '1',
-    title: 'AC Inspection',
-    company: 'ABC Company',
-    location: 'Sector 12, Karachi',
-    date: 'Apr 25, 2024',
-    status: 'To Do',
-    statusColor: '#95A5A6',
-  },
-  {
-    id: '2',
-    title: 'Power Line Check',
-    company: 'Ade Baseem',
-    time: '8:30am - 8:30pm',
-    date: 'Apr 26, 2024',
-    status: 'To Do',
-    statusColor: '#95A5A6',
-  },
-  {
-    id: '3',
-    title: 'Network Setup',
-    company: 'Willowmore',
-    time: '7:30pm - 6:30pm',
-    date: 'Apr 27, 2024',
-    status: 'In Progress',
-    statusColor: '#E8832F',
-    startedAt: new Date().toISOString(),
-  },
-];
+const Stack = createStackNavigator<RootStackParamList>();
 
-function App(): React.JSX.Element {
-  const [currentScreen, setCurrentScreen] = useState<Screen>('Login');
-  const [tasks, setTasks] = useState(initialTasks);
-  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+function Navigation() {
+  const { tasks, updateTaskStatus } = useTasks();
   const [hasLocationPermission, setHasLocationPermission] = useState<boolean | null>(null);
 
-  React.useEffect(() => {
+  useEffect(() => {
     checkPermission();
   }, []);
 
   const checkPermission = async () => {
-    if (Platform.OS === 'android') {
-      try {
-        if (PermissionsAndroid) {
-          const hasPermission = await PermissionsAndroid.check(
-            PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION
-          );
-          setHasLocationPermission(hasPermission);
-        } else {
-          setHasLocationPermission(true);
-        }
-      } catch (err) {
-        console.warn('Permission check error:', err);
-        setHasLocationPermission(true); // Bypass if check fails to prevent crash
-      }
-    } else {
-      setHasLocationPermission(true);
-    }
+    const { status } = await Location.getForegroundPermissionsAsync();
+    setHasLocationPermission(status === 'granted');
   };
-
-  if (hasLocationPermission === false) {
-    return <LocationPermissionScreen onPermissionGranted={() => setHasLocationPermission(true)} />;
-  }
 
   if (hasLocationPermission === null) {
-    return <View style={{ flex: 1, backgroundColor: '#00231C' }} />; // Initial check in progress
+    return <View style={{ flex: 1, backgroundColor: '#00231C' }} />;
   }
 
-  const selectedTask = tasks.find(t => t.id === selectedTaskId);
-
-  const navigateTo = (screen: Screen, taskId: string | null = null) => {
-    if (taskId) setSelectedTaskId(taskId);
-    setCurrentScreen(screen);
-  };
-
-  const updateTaskStatus = (taskId: string, newStatus: string) => {
-    setTasks(prevTasks => prevTasks.map(task => {
-      if (task.id === taskId) {
-        let color = '#95A5A6';
-        let startedAt = task.startedAt;
-        if (newStatus === 'In Progress') {
-          color = '#E8832F';
-          if (!startedAt) startedAt = new Date().toISOString();
-        }
-        if (newStatus === 'Done') color = '#27AE60';
-        return { ...task, status: newStatus, statusColor: color, startedAt };
-      }
-      return task;
-    }));
-  };
-
-  const handleLogout = () => {
-    setCurrentScreen('Login');
-  };
-
   return (
-    <>
-      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
+    <Stack.Navigator
+      screenOptions={{
+        headerShown: false,
+      }}
+    >
+      {!hasLocationPermission ? (
+        <Stack.Screen name="LocationPermission">
+          {(props) => (
+            <LocationPermissionScreen
+              onPermissionGranted={() => setHasLocationPermission(true)}
+            />
+          )}
+        </Stack.Screen>
+      ) : (
+        <>
+          <Stack.Screen name="Login">
+            {(props) => <LoginScreen onLogin={() => props.navigation.navigate('Dashboard')} />}
+          </Stack.Screen>
 
-      {currentScreen === 'Login' && (
-        <LoginScreen onLogin={() => navigateTo('Dashboard')} />
-      )}
+          <Stack.Screen name="Dashboard">
+            {(props) => (
+              <DashboardScreen
+                tasks={tasks}
+                onStartTask={() => props.navigation.navigate('MyTasks')}
+                onLogExpenses={() => props.navigation.navigate('LogExpenses')}
+                onProfile={() => props.navigation.navigate('Profile')}
+                onTasks={() => props.navigation.navigate('MyTasks')}
+                onCalendar={() => props.navigation.navigate('Calendar')}
+                onTaskPress={(task) => {
+                  if (task.status === 'In Progress') {
+                    props.navigation.navigate('TaskInProgress', { taskId: task.id });
+                  } else {
+                    props.navigation.navigate('TaskDetail', { taskId: task.id });
+                  }
+                }}
+              />
+            )}
+          </Stack.Screen>
 
-      {currentScreen === 'Dashboard' && (
-        <DashboardScreen
-          tasks={tasks}
-          onStartTask={() => navigateTo('MyTasks')}
-          onLogExpenses={() => navigateTo('LogExpenses')}
-          onProfile={() => navigateTo('Profile')}
-          onTasks={() => navigateTo('MyTasks')}
-          onCalendar={() => navigateTo('Calendar')}
-          onTaskPress={(task) => {
-            if (task.status === 'In Progress') {
-              navigateTo('TaskInProgress', task.id);
-            } else {
-              navigateTo('TaskDetail', task.id);
-            }
-          }}
-        />
-      )}
+          <Stack.Screen name="MyTasks">
+            {(props) => (
+              <MyTasksScreen
+                tasks={tasks}
+                onTaskPress={(task) => props.navigation.navigate('TaskDetail', { taskId: task.id })}
+                onBack={() => props.navigation.goBack()}
+                onProfile={() => props.navigation.navigate('Profile')}
+                onDashboard={() => props.navigation.navigate('Dashboard')}
+                onLogExpenses={() => props.navigation.navigate('LogExpenses')}
+                onCalendar={() => props.navigation.navigate('Calendar')}
+              />
+            )}
+          </Stack.Screen>
 
-      {currentScreen === 'MyTasks' && (
-        <MyTasksScreen
-          tasks={tasks}
-          onTaskPress={(task) => navigateTo('TaskDetail', task.id)}
-          onBack={() => navigateTo('Dashboard')}
-          onProfile={() => navigateTo('Profile')}
-          onDashboard={() => navigateTo('Dashboard')}
-          onLogExpenses={() => navigateTo('LogExpenses')}
-          onCalendar={() => navigateTo('Calendar')}
-        />
-      )}
+          <Stack.Screen name="Calendar">
+            {(props) => (
+              <CalendarScreen
+                tasks={tasks}
+                onTaskPress={(task) => props.navigation.navigate('TaskDetail', { taskId: task.id })}
+                onBack={() => props.navigation.goBack()}
+                onDashboard={() => props.navigation.navigate('Dashboard')}
+                onTasks={() => props.navigation.navigate('MyTasks')}
+                onProfile={() => props.navigation.navigate('Profile')}
+              />
+            )}
+          </Stack.Screen>
 
-      {currentScreen === 'Calendar' && (
-        <CalendarScreen
-          tasks={tasks}
-          onTaskPress={(task) => navigateTo('TaskDetail', task.id)}
-          onBack={() => navigateTo('Dashboard')}
-          onDashboard={() => navigateTo('Dashboard')}
-          onTasks={() => navigateTo('MyTasks')}
-          onProfile={() => navigateTo('Profile')}
-        />
-      )}
+          <Stack.Screen name="TaskDetail">
+            {(props) => {
+              const task = tasks.find(t => t.id === props.route.params.taskId);
+              return (
+                <TaskDetailScreen
+                  task={task}
+                  onBack={() => props.navigation.goBack()}
+                  onInProgress={() => {
+                    updateTaskStatus(props.route.params.taskId, 'In Progress');
+                    props.navigation.navigate('TaskInProgress', { taskId: props.route.params.taskId });
+                  }}
+                />
+              );
+            }}
+          </Stack.Screen>
 
-      {currentScreen === 'TaskDetail' && (
-        <TaskDetailScreen
-          task={selectedTask}
-          onBack={() => navigateTo('MyTasks')}
-          onInProgress={() => {
-            if (selectedTaskId) updateTaskStatus(selectedTaskId, 'In Progress');
-            navigateTo('TaskInProgress', selectedTaskId);
-          }}
-        />
-      )}
+          <Stack.Screen name="TaskInProgress">
+            {(props) => {
+              const task = tasks.find(t => t.id === props.route.params.taskId);
+              return (
+                <TaskInProgressScreen
+                  task={task}
+                  onBack={() => props.navigation.goBack()}
+                  onComplete={() => {
+                    updateTaskStatus(props.route.params.taskId, 'Done');
+                    props.navigation.navigate('MyTasks');
+                  }}
+                  onDashboard={() => props.navigation.navigate('Dashboard')}
+                  onLogExpenses={() => props.navigation.navigate('LogExpenses')}
+                  onProfile={() => props.navigation.navigate('Profile')}
+                  onCalendar={() => props.navigation.navigate('Calendar')}
+                />
+              );
+            }}
+          </Stack.Screen>
 
-      {currentScreen === 'TaskInProgress' && (
-        <TaskInProgressScreen
-          task={selectedTask}
-          onBack={() => navigateTo('TaskDetail')}
-          onComplete={() => {
-            if (selectedTaskId) updateTaskStatus(selectedTaskId, 'Done');
-            navigateTo('MyTasks');
-          }}
-          onDashboard={() => navigateTo('Dashboard')}
-          onLogExpenses={() => navigateTo('LogExpenses')}
-          onProfile={() => navigateTo('Profile')}
-          onCalendar={() => navigateTo('Calendar')}
-        />
-      )}
+          <Stack.Screen name="LogExpenses">
+            {(props) => (
+              <LogExpensesScreen
+                onBack={() => props.navigation.goBack()}
+                onSubmit={(amount) => props.navigation.navigate('Reimbursement', { amount })}
+                onDashboard={() => props.navigation.navigate('Dashboard')}
+                onTasks={() => props.navigation.navigate('MyTasks')}
+                onProfile={() => props.navigation.navigate('Profile')}
+              />
+            )}
+          </Stack.Screen>
 
-      {currentScreen === 'LogExpenses' && (
-        <LogExpensesScreen
-          onBack={() => navigateTo('Dashboard')}
-          onSubmit={() => navigateTo('Reimbursement')}
-          onDashboard={() => navigateTo('Dashboard')}
-          onTasks={() => navigateTo('MyTasks')}
-          onProfile={() => navigateTo('Profile')}
-        />
-      )}
+          <Stack.Screen name="Reimbursement">
+            {(props) => (
+              <ReimbursementScreen
+                amount={props.route.params.amount}
+                onBack={() => props.navigation.goBack()}
+                onSubmit={() => props.navigation.navigate('Dashboard')}
+              />
+            )}
+          </Stack.Screen>
 
-      {currentScreen === 'Reimbursement' && (
-        <ReimbursementScreen
-          onBack={() => navigateTo('LogExpenses')}
-          onSubmit={() => navigateTo('Dashboard')}
-        />
+          <Stack.Screen name="Profile">
+            {(props) => (
+              <ProfileScreen
+                onBack={() => props.navigation.goBack()}
+                onLogout={() => props.navigation.replace('Login')}
+                onTasks={() => props.navigation.navigate('MyTasks')}
+                onLogExpenses={() => props.navigation.navigate('LogExpenses')}
+                onCalendar={() => props.navigation.navigate('Calendar')}
+              />
+            )}
+          </Stack.Screen>
+        </>
       )}
-
-      {currentScreen === 'Profile' && (
-        <ProfileScreen
-          onBack={() => navigateTo('Dashboard')}
-          onLogout={handleLogout}
-          onTasks={() => navigateTo('MyTasks')}
-          onLogExpenses={() => navigateTo('LogExpenses')}
-          onCalendar={() => navigateTo('Calendar')}
-        />
-      )}
-    </>
+    </Stack.Navigator>
   );
 }
 
-export default App;
+export default function App() {
+  return (
+    <SafeAreaProvider>
+      <TaskProvider>
+        <NavigationContainer>
+          <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
+          <Navigation />
+        </NavigationContainer>
+      </TaskProvider>
+    </SafeAreaProvider>
+  );
+}

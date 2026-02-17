@@ -2,16 +2,18 @@ import React from 'react';
 import {
     StyleSheet,
     View,
-    SafeAreaView,
     TouchableOpacity,
     StatusBar,
     ScrollView,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, Spacing, Fonts } from '../theme';
-import Icon from 'react-native-vector-icons/Ionicons';
-import FAIcon from 'react-native-vector-icons/FontAwesome5';
+import Icon from '@expo/vector-icons/Ionicons';
+import FAIcon from '@expo/vector-icons/FontAwesome5';
 import BrandText from '../components/BrandText';
 import BackgroundWrapper from '../components/BackgroundWrapper';
+
+import { scale, verticalScale, rf, wp, hp } from '../utils/responsiveHelpers';
 
 interface MyTasksScreenProps {
     tasks: any[];
@@ -24,22 +26,22 @@ interface MyTasksScreenProps {
 }
 
 const MyTasksScreen: React.FC<MyTasksScreenProps> = ({ tasks, onTaskPress, onBack, onProfile, onDashboard, onLogExpenses, onCalendar }) => {
-    const [activeFilter, setActiveFilter] = React.useState('All');
+    const [activeFilterState, setActiveFilter] = React.useState('All');
     const filters = ['All', 'To Do', 'In Progress', 'Done'];
 
     return (
         <BackgroundWrapper>
             <SafeAreaView style={styles.safeArea}>
-                <StatusBar barStyle="light-content" />
+                <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
 
                 {/* Header */}
                 <View style={styles.header}>
                     <TouchableOpacity onPress={onBack} style={styles.backButton}>
-                        <Icon name="chevron-back" size={24} color={Colors.white} />
+                        <Icon name="chevron-back" size={scale(24)} color={Colors.white} />
                     </TouchableOpacity>
                     <BrandText variant="headline" style={styles.headerTitle}>Tasks</BrandText>
                     <TouchableOpacity style={styles.searchButton}>
-                        <Icon name="search" size={24} color={Colors.white} />
+                        <Icon name="search" size={scale(24)} color={Colors.white} />
                     </TouchableOpacity>
                 </View>
 
@@ -49,10 +51,10 @@ const MyTasksScreen: React.FC<MyTasksScreenProps> = ({ tasks, onTaskPress, onBac
                         {filters.map((filter) => (
                             <TouchableOpacity
                                 key={filter}
-                                style={[styles.filterItem, activeFilter === filter && styles.filterItemActive]}
+                                style={[styles.filterItem, activeFilterState === filter && styles.filterItemActive]}
                                 onPress={() => setActiveFilter(filter)}
                             >
-                                <BrandText style={[styles.filterText, activeFilter === filter && styles.filterTextActive]}>
+                                <BrandText style={[styles.filterText, activeFilterState === filter && styles.filterTextActive]}>
                                     {filter}
                                 </BrandText>
                             </TouchableOpacity>
@@ -62,7 +64,7 @@ const MyTasksScreen: React.FC<MyTasksScreenProps> = ({ tasks, onTaskPress, onBac
 
                 <ScrollView style={styles.content} contentContainerStyle={styles.scrollContent}>
                     {tasks
-                        .filter(task => activeFilter === 'All' || task.status === activeFilter)
+                        .filter(task => activeFilterState === 'All' || task.status === activeFilterState)
                         .map((task) => (
                             <TouchableOpacity
                                 key={task.id}
@@ -71,23 +73,23 @@ const MyTasksScreen: React.FC<MyTasksScreenProps> = ({ tasks, onTaskPress, onBac
                             >
                                 <View style={styles.cardHeader}>
                                     <View style={styles.avatarPlaceholder}>
-                                        <Icon name="person" size={20} color="#666" />
+                                        <Icon name="person" size={scale(20)} color="#666" />
                                     </View>
                                     <View style={styles.taskTitleContainer}>
                                         <View style={styles.titleRow}>
                                             <BrandText variant="headline" style={styles.taskTitle}>{task.title}</BrandText>
-                                            <Icon name="chevron-forward" size={16} color="rgba(255,255,255,0.4)" />
+                                            <Icon name="chevron-forward" size={scale(16)} color="rgba(255,255,255,0.4)" />
                                         </View>
                                         <View style={styles.infoRow}>
-                                            <Icon name="location-outline" size={14} color={Colors.heritageGold} />
+                                            <Icon name="location-outline" size={scale(14)} color={Colors.heritageGold} />
                                             <BrandText style={styles.infoText}>{task.company}</BrandText>
                                         </View>
                                         <View style={styles.infoRow}>
-                                            <Icon name="call-outline" size={14} color="rgba(255,255,255,0.4)" />
+                                            <Icon name="call-outline" size={scale(14)} color="rgba(255,255,255,0.4)" />
                                             <BrandText style={styles.infoText}>{task.location || task.time}</BrandText>
                                         </View>
                                         <View style={styles.infoRow}>
-                                            <Icon name="calendar-outline" size={14} color="rgba(255,255,255,0.4)" />
+                                            <Icon name="calendar-outline" size={scale(14)} color="rgba(255,255,255,0.4)" />
                                             <BrandText style={styles.infoText}>{task.date}</BrandText>
                                         </View>
                                     </View>
@@ -98,7 +100,7 @@ const MyTasksScreen: React.FC<MyTasksScreenProps> = ({ tasks, onTaskPress, onBac
                                     </View>
                                     {task.status === 'In Progress' ? (
                                         <View style={[styles.statusBadge, styles.inProgressBadge]}>
-                                            <Icon name="time" size={12} color={Colors.heritageGold} style={{ marginRight: 4 }} />
+                                            <Icon name="time" size={scale(12)} color={Colors.heritageGold} style={{ marginRight: scale(4) }} />
                                             <BrandText style={styles.statusTextActive}>In Progress</BrandText>
                                         </View>
                                     ) : task.status === 'Done' ? (
@@ -118,19 +120,19 @@ const MyTasksScreen: React.FC<MyTasksScreenProps> = ({ tasks, onTaskPress, onBac
                 {/* Bottom Navigation */}
                 <View style={styles.bottomNav}>
                     <TouchableOpacity style={styles.navItem} onPress={onDashboard}>
-                        <Icon name="home-outline" size={24} color={Colors.white} />
+                        <Icon name="home-outline" size={scale(24)} color={Colors.white} />
                         <BrandText style={styles.navLabel}>Dashboard</BrandText>
                     </TouchableOpacity>
                     <TouchableOpacity style={styles.navItem}>
-                        <FAIcon name="file-alt" size={22} color={Colors.heritageGold} />
+                        <FAIcon name="file-alt" size={scale(22)} color={Colors.heritageGold} />
                         <BrandText style={[styles.navLabel, styles.activeNavText]}>Tasks</BrandText>
                     </TouchableOpacity>
                     <TouchableOpacity style={styles.navItem} onPress={onCalendar}>
-                        <Icon name="calendar-outline" size={24} color={Colors.white} />
+                        <Icon name="calendar-outline" size={scale(24)} color={Colors.white} />
                         <BrandText style={styles.navLabel}>Calendar</BrandText>
                     </TouchableOpacity>
                     <TouchableOpacity style={styles.navItem} onPress={onProfile}>
-                        <Icon name="settings-outline" size={24} color={Colors.white} />
+                        <Icon name="settings-outline" size={scale(24)} color={Colors.white} />
                         <BrandText style={styles.navLabel}>Settings</BrandText>
                     </TouchableOpacity>
                 </View>
@@ -144,36 +146,37 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     header: {
-        height: 100,
-        paddingTop: 40,
+        height: verticalScale(55),
+        paddingTop: verticalScale(10),
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        paddingHorizontal: Spacing.m,
+        paddingHorizontal: wp(5),
     },
     headerTitle: {
-        fontSize: 18,
+        fontSize: rf(22),
         fontWeight: 'bold',
         letterSpacing: 0.5,
     },
     backButton: {
-        width: 40,
+        width: scale(40),
     },
     searchButton: {
-        width: 40,
+        width: scale(40),
         alignItems: 'flex-end',
     },
     filterContainer: {
-        marginBottom: Spacing.m,
+        marginBottom: verticalScale(16),
+        marginTop: verticalScale(10),
     },
     filterScroll: {
-        paddingHorizontal: Spacing.m,
-        gap: 12,
+        paddingHorizontal: wp(5),
+        gap: scale(12),
     },
     filterItem: {
-        paddingHorizontal: 16,
-        paddingVertical: 10,
-        borderRadius: 10,
+        paddingHorizontal: scale(16),
+        paddingVertical: verticalScale(10),
+        borderRadius: scale(10),
         backgroundColor: 'rgba(255,255,255,0.08)',
         borderWidth: 1,
         borderColor: 'rgba(255,255,255,0.1)',
@@ -183,7 +186,7 @@ const styles = StyleSheet.create({
         borderColor: Colors.heritageGold,
     },
     filterText: {
-        fontSize: 14,
+        fontSize: rf(14),
         fontWeight: '600',
         color: 'rgba(255, 255, 255, 0.97)',
     },
@@ -194,14 +197,14 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     scrollContent: {
-        padding: Spacing.m,
+        padding: wp(5),
         paddingTop: 0,
     },
     taskCard: {
         backgroundColor: 'rgba(255,255,255,0.03)',
-        borderRadius: 16,
-        padding: Spacing.m,
-        marginBottom: Spacing.m,
+        borderRadius: scale(16),
+        padding: scale(16),
+        marginBottom: verticalScale(16),
         borderWidth: 1,
         borderColor: 'rgba(255,255,255,0.08)',
     },
@@ -210,13 +213,13 @@ const styles = StyleSheet.create({
         alignItems: 'flex-start',
     },
     avatarPlaceholder: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
+        width: scale(40),
+        height: scale(40),
+        borderRadius: scale(20),
         backgroundColor: 'rgba(255,255,255,0.1)',
         justifyContent: 'center',
         alignItems: 'center',
-        marginRight: 12,
+        marginRight: scale(12),
         borderWidth: 1,
         borderColor: 'rgba(255,255,255,0.05)',
     },
@@ -227,28 +230,28 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 4,
+        marginBottom: verticalScale(4),
     },
     taskTitle: {
-        fontSize: 20,
+        fontSize: rf(18),
         fontWeight: 'bold',
         color: Colors.white,
     },
     infoRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginTop: 4,
+        marginTop: verticalScale(4),
     },
     infoText: {
-        fontSize: 15,
+        fontSize: rf(14),
         color: 'rgba(255, 255, 255, 1)',
-        marginLeft: 8,
+        marginLeft: scale(8),
     },
     cardFooter: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginTop: 16,
+        marginTop: verticalScale(16),
     },
     footerInfo: {
         flexDirection: 'row',
@@ -264,9 +267,9 @@ const styles = StyleSheet.create({
         marginLeft: 6,
     },
     statusBadge: {
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        borderRadius: 8,
+        paddingHorizontal: scale(12),
+        paddingVertical: verticalScale(6),
+        borderRadius: scale(8),
         flexDirection: 'row',
         alignItems: 'center',
     },
@@ -287,26 +290,26 @@ const styles = StyleSheet.create({
     },
     statusTextActive: {
         color: Colors.heritageGold,
-        fontSize: 13,
+        fontSize: rf(13),
         fontWeight: 'bold',
     },
     statusTextDone: {
         color: '#27AE60',
-        fontSize: 13,
+        fontSize: rf(13),
         fontWeight: 'bold',
     },
     statusTextTodo: {
         color: '#95A5A6',
-        fontSize: 13,
+        fontSize: rf(13),
         fontWeight: 'bold',
     },
     bottomNav: {
-        height: 80,
+        height: verticalScale(70),
         flexDirection: 'row',
         backgroundColor: 'rgba(0, 35, 28, 0.95)',
         borderTopWidth: 1,
         borderColor: 'rgba(255,255,255,0.1)',
-        paddingBottom: 20,
+        paddingBottom: verticalScale(10),
     },
     navItem: {
         flex: 1,
@@ -314,8 +317,8 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     navLabel: {
-        fontSize: 10,
-        marginTop: 4,
+        fontSize: rf(10),
+        marginTop: verticalScale(4),
         opacity: 0.6,
     },
     activeNavText: {
