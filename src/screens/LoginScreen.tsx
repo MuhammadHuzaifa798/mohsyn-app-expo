@@ -17,12 +17,14 @@ import BrandText from '../components/BrandText';
 import BackgroundWrapper from '../components/BackgroundWrapper';
 import { scale, verticalScale, rf, wp } from '../utils/responsiveHelpers';
 import { loginToOdoo } from '../utils/odooApi';
+import { useTasks } from '../hooks/useTasks';
 
 interface LoginScreenProps {
     onLogin: () => void;
 }
 
 const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
+    const { refreshTasks } = useTasks();
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -45,6 +47,8 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
             const result = await loginToOdoo(username.trim(), password);
 
             if (result && result.status === 'success') {
+                // Refresh tasks before navigating
+                await refreshTasks();
                 // Login successful - navigate to Dashboard
                 onLogin();
             }

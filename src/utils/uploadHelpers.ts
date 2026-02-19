@@ -1,6 +1,7 @@
 import * as ImagePicker from 'expo-image-picker';
 import { Alert } from 'react-native';
 import { Audio } from 'expo-av';
+import { File } from 'expo-file-system';
 
 export interface UploadedFile {
     uri: string;
@@ -221,4 +222,17 @@ export const showUploadOptions = (
     ];
 
     Alert.alert('Upload Photo', 'Choose an option', buttons);
+};
+
+/**
+ * Convert URI to Base64
+ */
+export const uriToBase64 = async (uri: string): Promise<string> => {
+    try {
+        const file = new File(uri);
+        return await file.base64();
+    } catch (error) {
+        console.error('Error converting URI to base64:', error);
+        throw error;
+    }
 };

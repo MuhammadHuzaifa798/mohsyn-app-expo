@@ -16,20 +16,23 @@ import BackgroundWrapper from '../components/BackgroundWrapper';
 import { scale, verticalScale, rf, wp, hp } from '../utils/responsiveHelpers';
 
 interface LogExpensesScreenProps {
+    taskId?: string;
     onBack: () => void;
-    onSubmit: (amount: string) => void;
+    onSubmit: (amount: string, notes: string, image?: string) => void;
     onDashboard: () => void;
     onTasks: () => void;
     onProfile: () => void;
 }
 
-import { takePhoto, pickImage, showUploadOptions, UploadedFile } from '../utils/uploadHelpers';
+import { takePhoto, pickImage, showUploadOptions, UploadedFile, uriToBase64 } from '../utils/uploadHelpers';
 import { Image } from 'react-native';
 
-const LogExpensesScreen: React.FC<LogExpensesScreenProps> = ({ onBack, onSubmit, onDashboard, onTasks, onProfile }) => {
+const LogExpensesScreen: React.FC<LogExpensesScreenProps> = ({ taskId, onBack, onSubmit, onDashboard, onTasks, onProfile }) => {
     const [amount, setAmount] = useState('500');
     const [hours, setHours] = useState('3');
+    const [notes, setNotes] = useState('');
     const [receiptImage, setReceiptImage] = useState<string | null>(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const handleCameraUpload = async () => {
         const file = await takePhoto();
@@ -110,9 +113,43 @@ const LogExpensesScreen: React.FC<LogExpensesScreenProps> = ({ onBack, onSubmit,
                         </View>
                     </View>
 
+                    {/* Notes Field */}
+                    <View style={[styles.inputGroup, { marginTop: verticalScale(24) }]}>
+                        <BrandText style={styles.label}>Notes</BrandText>
+                        <View style={[styles.inputWrapper, { height: verticalScale(100), alignItems: 'flex-start', paddingTop: verticalScale(12) }]}>
+                            <TextInput
+                                style={[styles.input, { textAlignVertical: 'top' }]}
+                                value={notes}
+                                onChangeText={setNotes}
+                                placeholder="Add some details about the expense..."
+                                placeholderTextColor="rgba(255,255,255,0.3)"
+                                multiline
+                            />
+                        </View>
+                    </View>
+
                     {/* Submit Button */}
-                    <TouchableOpacity style={styles.submitButton} onPress={() => onSubmit(amount)}>
-                        <BrandText style={styles.submitButtonText}>Submit Expense</BrandText>
+                    <TouchableOpacity
+                        style={[styles.submitButton, isSubmitting && { opacity: 0.7 }]}
+                        onPress={async () => {
+                            setIsSubmitting(true);
+                            try {
+                                let base64Image = undefined;
+                                if (receiptImage) {
+                                    base64Image = await uriToBase64(receiptImage);
+                                }
+                                await onSubmit(amount, notes, base64Image);
+                            } catch (err) {
+                                console.error(err);
+                            } finally {
+                                setIsSubmitting(false);
+                            }
+                        }}
+                        disabled={isSubmitting}
+                    >
+                        <BrandText style={styles.submitButtonText}>
+                            {isSubmitting ? 'Submitting...' : 'Submit Expense'}
+                        </BrandText>
                     </TouchableOpacity>
                 </ScrollView>
 

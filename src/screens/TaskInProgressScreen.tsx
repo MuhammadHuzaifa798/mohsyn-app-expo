@@ -10,6 +10,8 @@ import {
     Image,
     Platform,
     KeyboardAvoidingView,
+    Alert,
+    ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from '@expo/vector-icons/Ionicons';
@@ -17,15 +19,16 @@ import FAIcon from '@expo/vector-icons/FontAwesome5';
 import { Colors, Spacing, Fonts } from '../theme';
 import BrandText from '../components/BrandText';
 import BackgroundWrapper from '../components/BackgroundWrapper';
-import { takePhoto, pickImage, showUploadOptions, UploadedFile, startAudioRecording, playAudio, stopAudio } from '../utils/uploadHelpers';
+import { takePhoto, pickImage, showUploadOptions, UploadedFile, startAudioRecording, playAudio, stopAudio, uriToBase64 } from '../utils/uploadHelpers';
 
 import { getCurrentLocation, watchLocation } from '../utils/locationHelpers';
 import { scale, verticalScale, rf, wp, hp } from '../utils/responsiveHelpers';
+import { useTasks } from '../hooks/useTasks';
 
 interface TaskInProgressScreenProps {
     task: any;
     onBack: () => void;
-    onComplete: () => void;
+    onComplete: (duration: string | number) => void;
     onDashboard: () => void;
     onLogExpenses: () => void;
     onProfile: () => void;
@@ -43,6 +46,7 @@ const TaskInProgressScreen: React.FC<TaskInProgressScreenProps> = ({ task, onBac
     const [playingFileUri, setPlayingFileUri] = useState<string | null>(null);
     const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
     const [messageText, setMessageText] = useState('');
+    const [isCompleting, setIsCompleting] = useState(false);
     const scrollRef = useRef<ScrollView>(null);
 
     // Mock task coordinates (sector 12, Karachi roughly)
@@ -101,6 +105,12 @@ const TaskInProgressScreen: React.FC<TaskInProgressScreenProps> = ({ task, onBac
         const file = await takePhoto();
         if (file) {
             setUploadedFiles(prev => [...prev, { ...file, timestamp: Date.now() }]);
+            try {
+                const base64 = await uriToBase64(file.uri);
+                await logExpense(task.id, 'Image uploaded from mobile', base64);
+            } catch (err) {
+                console.error('Failed to log image expense:', err);
+            }
         }
     };
 
@@ -108,6 +118,12 @@ const TaskInProgressScreen: React.FC<TaskInProgressScreenProps> = ({ task, onBac
         const file = await pickImage();
         if (file) {
             setUploadedFiles(prev => [...prev, { ...file, timestamp: Date.now() }]);
+            try {
+                const base64 = await uriToBase64(file.uri);
+                await logExpense(task.id, 'Gallery image uploaded from mobile', base64);
+            } catch (err) {
+                console.error('Failed to log gallery image expense:', err);
+            }
         }
     };
 
@@ -137,6 +153,8 @@ const TaskInProgressScreen: React.FC<TaskInProgressScreenProps> = ({ task, onBac
         }
     };
 
+    const { logExpense } = useTasks();
+
     const handleSendMessage = async () => {
         if (isRecording && recordingSession) {
             const file = await recordingSession.stop();
@@ -146,14 +164,21 @@ const TaskInProgressScreen: React.FC<TaskInProgressScreenProps> = ({ task, onBac
             setIsRecording(false);
             setRecordingSession(null);
         } else if (messageText.trim()) {
-            const textFile: UploadedFile = {
-                uri: '',
-                type: 'text/plain',
-                name: messageText.trim(),
-                timestamp: Date.now()
-            };
-            setUploadedFiles(prev => [...prev, textFile]);
-            setMessageText('');
+            try {
+                // Post to Odoo via logExpense
+                await logExpense(task.id, messageText.trim());
+
+                const textFile: UploadedFile = {
+                    uri: '',
+                    type: 'text/plain',
+                    name: messageText.trim(),
+                    timestamp: Date.now()
+                };
+                setUploadedFiles(prev => [...prev, textFile]);
+                setMessageText('');
+            } catch (error) {
+                console.error('Failed to send message:', error);
+            }
         }
     };
 
@@ -343,6 +368,35 @@ const TaskInProgressScreen: React.FC<TaskInProgressScreenProps> = ({ task, onBac
         }
     };
 
+    const handleComplete = () => {
+        Alert.alert(
+            'Finish Task',
+            'Are you sure you want to complete this task and log your time?',
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Complete',
+                    onPress: async () => {
+                        setIsCompleting(true);
+                        try {
+                            if (task?.startedAt) {
+                                // Send the timer string directly (HH:MM:SS)
+                                console.log(`Completing task ${task.id}. Duration: ${timer}`);
+                                await onComplete(timer);
+                            } else {
+                                await onComplete('00:00:00');
+                            }
+                        } catch (err) {
+                            console.error('Completion error:', err);
+                        } finally {
+                            setIsCompleting(false);
+                        }
+                    }
+                }
+            ]
+        );
+    };
+
     return (
         <BackgroundWrapper>
             <SafeAreaView style={styles.safeArea}>
@@ -377,16 +431,16 @@ const TaskInProgressScreen: React.FC<TaskInProgressScreenProps> = ({ task, onBac
                     >
                         {/* Task Context moved inside scrollable area if screens are small */}
                         <View style={styles.contextHeader}>
-                            <BrandText variant="headline" style={styles.mainTitle}>Repair AC Unit</BrandText>
+                            <BrandText variant="headline" style={styles.mainTitle}>{task?.title || 'Repair AC Unit'}</BrandText>
                             <View style={styles.userSummaryRow}>
                                 <View style={styles.userAvatar}>
                                     <Icon name="person" size={scale(20)} color="#666" />
                                 </View>
                                 <View>
-                                    <BrandText style={styles.userNameText}>Sarah Williamson</BrandText>
+                                    <BrandText style={styles.userNameText}>{task?.company || 'Sarah Williamson'}</BrandText>
                                     <View style={styles.locationSmallRow}>
                                         <Icon name="location-outline" size={scale(12)} color={Colors.heritageGold} />
-                                        <BrandText style={styles.locationSmallText}>123 Pine St, Springfield</BrandText>
+                                        <BrandText style={styles.locationSmallText}>{task?.location || '123 Pine St, Springfield'}</BrandText>
                                     </View>
                                 </View>
                             </View>
@@ -454,8 +508,16 @@ const TaskInProgressScreen: React.FC<TaskInProgressScreenProps> = ({ task, onBac
                                 <Icon name="time-outline" size={scale(20)} color={Colors.white} />
                                 <BrandText style={styles.timerDisplayText}>{timer} In Progress</BrandText>
                             </View>
-                            <TouchableOpacity style={styles.finalCompleteBtn} onPress={onComplete}>
-                                <BrandText style={styles.finalCompleteText}>COMPLETE TASK</BrandText>
+                            <TouchableOpacity
+                                style={[styles.finalCompleteBtn, isCompleting && { opacity: 0.7 }]}
+                                onPress={handleComplete}
+                                disabled={isCompleting}
+                            >
+                                {isCompleting ? (
+                                    <ActivityIndicator color={Colors.white} size="small" />
+                                ) : (
+                                    <BrandText style={styles.finalCompleteText}>COMPLETE TASK</BrandText>
+                                )}
                             </TouchableOpacity>
                         </View>
                     )}

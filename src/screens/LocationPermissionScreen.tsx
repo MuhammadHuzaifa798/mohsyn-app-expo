@@ -6,6 +6,7 @@ import {
     StatusBar,
     Linking,
     Platform,
+    Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from '@expo/vector-icons/Ionicons';
@@ -26,11 +27,15 @@ const LocationPermissionScreen: React.FC<LocationPermissionScreenProps> = ({ onP
         if (granted) {
             onPermissionGranted();
         } else {
-            // If they denied it before, maybe show settings
-            if (Platform.OS === 'ios' || Platform.OS === 'android') {
-                // Link to app settings if already denied
-                // linking.openSettings();
-            }
+            // If they denied it before, we should guide them to settings
+            Alert.alert(
+                'Permission Required',
+                'Location access is necessary to track task progress. Please enable it in your device settings.',
+                [
+                    { text: 'Cancel', style: 'cancel' },
+                    { text: 'Open Settings', onPress: () => Linking.openSettings() }
+                ]
+            );
         }
     };
 

@@ -26,7 +26,7 @@ export type RootStackParamList = {
   Calendar: undefined;
   TaskDetail: { taskId: string };
   TaskInProgress: { taskId: string };
-  LogExpenses: undefined;
+  LogExpenses: { taskId?: string };
   Reimbursement: { amount: string };
   Profile: undefined;
   LocationPermission: undefined;
@@ -35,7 +35,7 @@ export type RootStackParamList = {
 const Stack = createStackNavigator<RootStackParamList>();
 
 function Navigation() {
-  const { tasks, updateTaskStatus } = useTasks();
+  const { tasks, updateTaskStatus, startTask, stopTask } = useTasks();
   const [hasLocationPermission, setHasLocationPermission] = useState<boolean | null>(null);
 
   useEffect(() => {
@@ -76,7 +76,7 @@ function Navigation() {
               <DashboardScreen
                 tasks={tasks}
                 onStartTask={() => props.navigation.navigate('MyTasks')}
-                onLogExpenses={() => props.navigation.navigate('LogExpenses')}
+                onLogExpenses={() => props.navigation.navigate('LogExpenses', {})}
                 onProfile={() => props.navigation.navigate('Profile')}
                 onTasks={() => props.navigation.navigate('MyTasks')}
                 onCalendar={() => props.navigation.navigate('Calendar')}
@@ -99,7 +99,7 @@ function Navigation() {
                 onBack={() => props.navigation.goBack()}
                 onProfile={() => props.navigation.navigate('Profile')}
                 onDashboard={() => props.navigation.navigate('Dashboard')}
-                onLogExpenses={() => props.navigation.navigate('LogExpenses')}
+                onLogExpenses={() => props.navigation.navigate('LogExpenses', {})}
                 onCalendar={() => props.navigation.navigate('Calendar')}
               />
             )}
@@ -125,8 +125,8 @@ function Navigation() {
                 <TaskDetailScreen
                   task={task}
                   onBack={() => props.navigation.goBack()}
-                  onInProgress={() => {
-                    updateTaskStatus(props.route.params.taskId, 'In Progress');
+                  onInProgress={async () => {
+                    await startTask(props.route.params.taskId);
                     props.navigation.navigate('TaskInProgress', { taskId: props.route.params.taskId });
                   }}
                 />
@@ -141,12 +141,12 @@ function Navigation() {
                 <TaskInProgressScreen
                   task={task}
                   onBack={() => props.navigation.goBack()}
-                  onComplete={() => {
-                    updateTaskStatus(props.route.params.taskId, 'Done');
+                  onComplete={async (duration) => {
+                    await stopTask(props.route.params.taskId, duration);
                     props.navigation.navigate('MyTasks');
                   }}
                   onDashboard={() => props.navigation.navigate('Dashboard')}
-                  onLogExpenses={() => props.navigation.navigate('LogExpenses')}
+                  onLogExpenses={() => props.navigation.navigate('LogExpenses', { taskId: props.route.params.taskId })}
                   onProfile={() => props.navigation.navigate('Profile')}
                   onCalendar={() => props.navigation.navigate('Calendar')}
                 />
@@ -155,15 +155,26 @@ function Navigation() {
           </Stack.Screen>
 
           <Stack.Screen name="LogExpenses">
-            {(props) => (
-              <LogExpensesScreen
-                onBack={() => props.navigation.goBack()}
-                onSubmit={(amount) => props.navigation.navigate('Reimbursement', { amount })}
-                onDashboard={() => props.navigation.navigate('Dashboard')}
-                onTasks={() => props.navigation.navigate('MyTasks')}
-                onProfile={() => props.navigation.navigate('Profile')}
-              />
-            )}
+            {(props) => {
+              const { logExpense } = useTasks();
+              const taskId = props.route.params?.taskId;
+
+              return (
+                <LogExpensesScreen
+                  taskId={taskId}
+                  onBack={() => props.navigation.goBack()}
+                  onSubmit={async (amount, notes, image) => {
+                    if (taskId) {
+                      await logExpense(taskId, notes || `Expense amount: ${amount}`, image);
+                    }
+                    props.navigation.navigate('Reimbursement', { amount });
+                  }}
+                  onDashboard={() => props.navigation.navigate('Dashboard')}
+                  onTasks={() => props.navigation.navigate('MyTasks')}
+                  onProfile={() => props.navigation.navigate('Profile')}
+                />
+              );
+            }}
           </Stack.Screen>
 
           <Stack.Screen name="Reimbursement">
@@ -182,7 +193,7 @@ function Navigation() {
                 onBack={() => props.navigation.goBack()}
                 onLogout={() => props.navigation.replace('Login')}
                 onTasks={() => props.navigation.navigate('MyTasks')}
-                onLogExpenses={() => props.navigation.navigate('LogExpenses')}
+                onLogExpenses={() => props.navigation.navigate('LogExpenses', {})}
                 onCalendar={() => props.navigation.navigate('Calendar')}
               />
             )}

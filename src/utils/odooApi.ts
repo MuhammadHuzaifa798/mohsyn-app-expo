@@ -14,6 +14,10 @@ const ODOO_URL = 'http://192.168.100.53:8019';  // Your computer's WiFi IP
 const ENDPOINTS = {
     LOGIN: '/prodo/api/login',
     USER_INFO: '/prodo/api/user_info',
+    TASKS: '/prodo/api/tasks',
+    TASK_START: '/prodo/api/task/start',
+    TASK_STOP: '/prodo/api/task/stop',
+    TASK_LOG_EXPENSE: '/prodo/api/task/log_expense',
 };
 
 // Storage Keys
@@ -133,6 +137,74 @@ export const loginToOdoo = async (
  */
 export const getUserInfo = async (): Promise<any> => {
     return makeRequest<any>(ENDPOINTS.USER_INFO, {}, true);
+};
+
+/**
+ * Fetch tasks for the current user
+ */
+export const getTasks = async (): Promise<any[]> => {
+    try {
+        const response: any = await makeRequest<any>(ENDPOINTS.TASKS, {}, true);
+        if (response.status === 'success' && Array.isArray(response.data)) {
+            return response.data;
+        }
+        return [];
+    } catch (error) {
+        console.error('Get Tasks Error:', error);
+        return [];
+    }
+};
+
+/**
+ * Start a task (Timer + Stage update)
+ */
+export const startTask = async (taskId: number): Promise<any> => {
+    try {
+        return await makeRequest<any>(ENDPOINTS.TASK_START, { task_id: taskId }, true);
+    } catch (error: any) {
+        console.error('Start Task Error:', error.message);
+        throw error;
+    }
+};
+
+/**
+ * Stop a task (Timer + Timesheet)
+ */
+export const stopTask = async (taskId: number | string, duration: number | string): Promise<any> => {
+    try {
+        return await makeRequest<any>(
+            ENDPOINTS.TASK_STOP,
+            { task_id: Number(taskId), duration: duration },
+            true
+        );
+    } catch (error: any) {
+        console.error('Stop Task Error:', error.message);
+        throw error;
+    }
+};
+
+/**
+ * Log an expense note and image to a task
+ */
+export const logExpense = async (
+    taskId: number,
+    notes?: string,
+    image?: string
+): Promise<any> => {
+    try {
+        return await makeRequest<any>(
+            ENDPOINTS.TASK_LOG_EXPENSE,
+            {
+                task_id: taskId,
+                notes: notes,
+                image: image, // Base64 string
+            },
+            true
+        );
+    } catch (error: any) {
+        console.error('Log Expense Error:', error.message);
+        throw error;
+    }
 };
 
 /**
