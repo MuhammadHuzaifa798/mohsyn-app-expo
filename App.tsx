@@ -35,7 +35,7 @@ export type RootStackParamList = {
 const Stack = createStackNavigator<RootStackParamList>();
 
 function Navigation() {
-  const { tasks, updateTaskStatus, startTask, stopTask } = useTasks();
+  const { tasks, updateTaskStatus, startTask, stopTask, refreshTasks, isLoading } = useTasks();
   const [hasLocationPermission, setHasLocationPermission] = useState<boolean | null>(null);
 
   useEffect(() => {
@@ -87,6 +87,8 @@ function Navigation() {
                     props.navigation.navigate('TaskDetail', { taskId: task.id });
                   }
                 }}
+                onRefresh={refreshTasks}
+                isLoading={isLoading}
               />
             )}
           </Stack.Screen>
@@ -95,12 +97,20 @@ function Navigation() {
             {(props) => (
               <MyTasksScreen
                 tasks={tasks}
-                onTaskPress={(task) => props.navigation.navigate('TaskDetail', { taskId: task.id })}
+                onTaskPress={(task) => {
+                  if (task.status === 'In Progress') {
+                    props.navigation.navigate('TaskInProgress', { taskId: task.id });
+                  } else {
+                    props.navigation.navigate('TaskDetail', { taskId: task.id });
+                  }
+                }}
                 onBack={() => props.navigation.goBack()}
                 onProfile={() => props.navigation.navigate('Profile')}
                 onDashboard={() => props.navigation.navigate('Dashboard')}
                 onLogExpenses={() => props.navigation.navigate('LogExpenses', {})}
                 onCalendar={() => props.navigation.navigate('Calendar')}
+                onRefresh={refreshTasks}
+                isLoading={isLoading}
               />
             )}
           </Stack.Screen>
@@ -109,25 +119,38 @@ function Navigation() {
             {(props) => (
               <CalendarScreen
                 tasks={tasks}
-                onTaskPress={(task) => props.navigation.navigate('TaskDetail', { taskId: task.id })}
+                onTaskPress={(task) => {
+                  if (task.status === 'In Progress') {
+                    props.navigation.navigate('TaskInProgress', { taskId: task.id });
+                  } else {
+                    props.navigation.navigate('TaskDetail', { taskId: task.id });
+                  }
+                }}
                 onBack={() => props.navigation.goBack()}
                 onDashboard={() => props.navigation.navigate('Dashboard')}
                 onTasks={() => props.navigation.navigate('MyTasks')}
                 onProfile={() => props.navigation.navigate('Profile')}
+                onRefresh={refreshTasks}
+                isLoading={isLoading}
               />
             )}
           </Stack.Screen>
 
           <Stack.Screen name="TaskDetail">
             {(props) => {
-              const task = tasks.find(t => t.id === props.route.params.taskId);
+              const taskId = props.route.params.taskId;
+              const task = tasks.find(t => String(t.id) === String(taskId));
+
               return (
                 <TaskDetailScreen
                   task={task}
                   onBack={() => props.navigation.goBack()}
                   onInProgress={async () => {
-                    await startTask(props.route.params.taskId);
-                    props.navigation.navigate('TaskInProgress', { taskId: props.route.params.taskId });
+                    // Only call startTask if it's not already in progress
+                    if (task?.status !== 'In Progress') {
+                      await startTask(taskId);
+                    }
+                    props.navigation.navigate('TaskInProgress', { taskId: taskId });
                   }}
                 />
               );
@@ -136,17 +159,21 @@ function Navigation() {
 
           <Stack.Screen name="TaskInProgress">
             {(props) => {
-              const task = tasks.find(t => t.id === props.route.params.taskId);
+              const taskId = props.route.params.taskId;
+              const task = tasks.find(t => String(t.id) === String(taskId));
+
+              if (!task) return <View style={{ flex: 1, backgroundColor: Colors.background }} />;
+
               return (
                 <TaskInProgressScreen
                   task={task}
-                  onBack={() => props.navigation.goBack()}
+                  onBack={() => props.navigation.navigate('MyTasks')}
                   onComplete={async (duration) => {
-                    await stopTask(props.route.params.taskId, duration);
+                    await stopTask(taskId, duration);
                     props.navigation.navigate('MyTasks');
                   }}
                   onDashboard={() => props.navigation.navigate('Dashboard')}
-                  onLogExpenses={() => props.navigation.navigate('LogExpenses', { taskId: props.route.params.taskId })}
+                  onLogExpenses={() => props.navigation.navigate('LogExpenses', { taskId: taskId })}
                   onProfile={() => props.navigation.navigate('Profile')}
                   onCalendar={() => props.navigation.navigate('Calendar')}
                 />
@@ -204,6 +231,59 @@ function Navigation() {
   );
 }
 
+import Toast, { BaseToast, ErrorToast, SuccessToast } from 'react-native-toast-message';
+
+const toastConfig = {
+  success: (props: any) => (
+    <SuccessToast
+      {...props}
+      style={{ borderLeftColor: Colors.completed, backgroundColor: '#052D25' }}
+      contentContainerStyle={{ paddingHorizontal: 15 }}
+      text1Style={{
+        fontSize: 16,
+        fontWeight: '600',
+        color: Colors.white
+      }}
+      text2Style={{
+        fontSize: 14,
+        color: Colors.textGray
+      }}
+    />
+  ),
+  error: (props: any) => (
+    <ErrorToast
+      {...props}
+      style={{ borderLeftColor: '#FF5252', backgroundColor: '#052D25' }}
+      contentContainerStyle={{ paddingHorizontal: 15 }}
+      text1Style={{
+        fontSize: 16,
+        fontWeight: '600',
+        color: Colors.white
+      }}
+      text2Style={{
+        fontSize: 14,
+        color: Colors.textGray
+      }}
+    />
+  ),
+  info: (props: any) => (
+    <BaseToast
+      {...props}
+      style={{ borderLeftColor: Colors.heritageGold, backgroundColor: '#052D25' }}
+      contentContainerStyle={{ paddingHorizontal: 15 }}
+      text1Style={{
+        fontSize: 16,
+        fontWeight: '600',
+        color: Colors.white
+      }}
+      text2Style={{
+        fontSize: 14,
+        color: Colors.textGray
+      }}
+    />
+  ),
+};
+
 export default function App() {
   return (
     <SafeAreaProvider>
@@ -212,6 +292,7 @@ export default function App() {
           <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
           <Navigation />
         </NavigationContainer>
+        <Toast config={toastConfig} />
       </TaskProvider>
     </SafeAreaProvider>
   );

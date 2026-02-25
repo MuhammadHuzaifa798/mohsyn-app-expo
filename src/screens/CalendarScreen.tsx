@@ -5,6 +5,7 @@ import {
     TouchableOpacity,
     StatusBar,
     ScrollView,
+    RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Calendar } from 'react-native-calendars';
@@ -23,6 +24,8 @@ interface CalendarScreenProps {
     onDashboard: () => void;
     onTasks: () => void;
     onProfile: () => void;
+    onRefresh: () => Promise<void>;
+    isLoading: boolean;
 }
 
 const CalendarScreen: React.FC<CalendarScreenProps> = ({
@@ -31,10 +34,19 @@ const CalendarScreen: React.FC<CalendarScreenProps> = ({
     onBack,
     onDashboard,
     onTasks,
-    onProfile
+    onProfile,
+    onRefresh,
+    isLoading
 }) => {
     const today = new Date().toISOString().split('T')[0];
     const [selectedDate, setSelectedDate] = useState(today);
+    const [refreshing, setRefreshing] = React.useState(false);
+
+    const handleRefresh = async () => {
+        setRefreshing(true);
+        await onRefresh();
+        setRefreshing(false);
+    };
 
     // Helper to format date strings like "Apr 25, 2024" to "2024-04-25"
     const formatDateForCalendar = (dateStr: string) => {
@@ -59,6 +71,7 @@ const CalendarScreen: React.FC<CalendarScreenProps> = ({
 
                 let dotColor = Colors.heritageGold; // Default
                 if (task.status === 'Done') dotColor = '#27AE60';
+                if (task.status === 'Approval') dotColor = '#3498DB';
                 if (task.status === 'To Do') dotColor = '#95A5A6';
 
                 marks[dateKey].dots = [...(marks[dateKey].dots || []), { color: dotColor }];
@@ -103,7 +116,18 @@ const CalendarScreen: React.FC<CalendarScreenProps> = ({
                     <View style={{ width: scale(40) }} />
                 </View>
 
-                <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+                <ScrollView
+                    style={styles.content}
+                    showsVerticalScrollIndicator={false}
+                    refreshControl={
+                        <RefreshControl
+                            refreshing={refreshing}
+                            onRefresh={handleRefresh}
+                            tintColor={Colors.heritageGold}
+                            colors={[Colors.heritageGold]}
+                        />
+                    }
+                >
                     {/* Calendar Component */}
                     <View style={styles.calendarCard}>
                         <Calendar

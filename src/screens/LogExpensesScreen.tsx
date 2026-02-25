@@ -26,10 +26,10 @@ interface LogExpensesScreenProps {
 
 import { takePhoto, pickImage, showUploadOptions, UploadedFile, uriToBase64 } from '../utils/uploadHelpers';
 import { Image } from 'react-native';
+import { showToast } from '../utils/toast';
 
 const LogExpensesScreen: React.FC<LogExpensesScreenProps> = ({ taskId, onBack, onSubmit, onDashboard, onTasks, onProfile }) => {
     const [amount, setAmount] = useState('500');
-    const [hours, setHours] = useState('3');
     const [notes, setNotes] = useState('');
     const [receiptImage, setReceiptImage] = useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -96,21 +96,6 @@ const LogExpensesScreen: React.FC<LogExpensesScreenProps> = ({ taskId, onBack, o
                                 </TouchableOpacity>
                             )}
                         </View>
-
-                        {/* Field Hours Field */}
-                        <View style={[styles.inputGroup, { marginTop: verticalScale(24) }]}>
-                            <BrandText style={styles.label}>Field Hours</BrandText>
-                            <View style={styles.inputWrapper}>
-                                <TextInput
-                                    style={styles.input}
-                                    value={hours}
-                                    onChangeText={setHours}
-                                    keyboardType="numeric"
-                                    placeholderTextColor="rgba(255,255,255,0.3)"
-                                />
-                                <BrandText style={styles.unitText}>Hours</BrandText>
-                            </View>
-                        </View>
                     </View>
 
                     {/* Notes Field */}
@@ -132,6 +117,11 @@ const LogExpensesScreen: React.FC<LogExpensesScreenProps> = ({ taskId, onBack, o
                     <TouchableOpacity
                         style={[styles.submitButton, isSubmitting && { opacity: 0.7 }]}
                         onPress={async () => {
+                            if (!amount || Number(amount) <= 0) {
+                                showToast.error('Validation Error', 'Please enter a valid amount');
+                                return;
+                            }
+
                             setIsSubmitting(true);
                             try {
                                 let base64Image = undefined;
@@ -139,8 +129,10 @@ const LogExpensesScreen: React.FC<LogExpensesScreenProps> = ({ taskId, onBack, o
                                     base64Image = await uriToBase64(receiptImage);
                                 }
                                 await onSubmit(amount, notes, base64Image);
-                            } catch (err) {
-                                console.error(err);
+                                showToast.success('Success', 'Expense logged successfully');
+                            } catch (err: any) {
+                                console.log(err);
+                                showToast.error('Submission Failed', err.message || 'Could not log expense');
                             } finally {
                                 setIsSubmitting(false);
                             }

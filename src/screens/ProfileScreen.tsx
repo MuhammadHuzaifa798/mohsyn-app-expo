@@ -57,7 +57,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onBack, onLogout, onTasks
                             await logout();
                             onLogout();
                         } catch (error) {
-                            console.error('Logout error:', error);
+                            console.log('Logout error:', error);
                             onLogout(); // Still navigate to login even on error
                         }
                     },

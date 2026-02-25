@@ -10,6 +10,9 @@
         "preview": {
             "android": {
                 "buildType": "apk"
+            },
+            "env": {
+                "EXPO_PUBLIC_ODOO_URL": "https://prodoerp-mohsyn-staging-1-1-26-27048125.dev.odoo.com"
             }
         },
         "production": {}

@@ -34,7 +34,7 @@ export const getCurrentLocation = (): Promise<{ latitude: number; longitude: num
             const { latitude, longitude } = location.coords;
             resolve({ latitude, longitude });
         } catch (e) {
-            console.error('Fatal Geolocation Error:', e);
+            console.log('Fatal Geolocation Error:', e);
             resolve(null);
         }
     });
@@ -68,7 +68,7 @@ export const watchLocation = (
                 }
             );
         } catch (e) {
-            console.error('Failed to start watching location:', e);
+            console.log('Failed to start watching location:', e);
             onError('Hardware or native module error');
         }
     };

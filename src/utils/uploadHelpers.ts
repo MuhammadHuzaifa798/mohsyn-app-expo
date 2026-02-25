@@ -145,7 +145,7 @@ export const startAudioRecording = async (
             }
         };
     } catch (error: any) {
-        console.error('Audio recording error:', error);
+        console.log('Audio recording error:', error);
         onError(error.message || 'Failed to start recording');
         return null;
     }
@@ -232,7 +232,7 @@ export const uriToBase64 = async (uri: string): Promise<string> => {
         const file = new File(uri);
         return await file.base64();
     } catch (error) {
-        console.error('Error converting URI to base64:', error);
+        console.log('Error converting URI to base64:', error);
         throw error;
     }
 };

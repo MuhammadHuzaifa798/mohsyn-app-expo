@@ -8,7 +8,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 // ============================================
 // ⚠️ CONFIGURATION - UPDATE THIS VALUE ⚠️
 // ============================================
-const ODOO_URL = 'http://192.168.100.53:8019';  // Your computer's WiFi IP
+export const ODOO_URL = process.env.EXPO_PUBLIC_ODOO_URL || 'http://192.168.100.53:8019';
 
 // API Endpoints
 const ENDPOINTS = {
@@ -17,7 +17,11 @@ const ENDPOINTS = {
     TASKS: '/prodo/api/tasks',
     TASK_START: '/prodo/api/task/start',
     TASK_STOP: '/prodo/api/task/stop',
+    TASK_HOLD: '/prodo/api/task/hold',
     TASK_LOG_EXPENSE: '/prodo/api/task/log_expense',
+    TASK_MESSAGES: '/prodo/api/task/messages',
+    RESET_PASSWORD: '/prodo/api/reset_password',
+    CHATAUDIO: '/prodo/api/chatter/audio',
 };
 
 // Storage Keys
@@ -127,7 +131,7 @@ export const loginToOdoo = async (
             throw new Error(result.message || 'Login failed');
         }
     } catch (error: any) {
-        console.error('❌ Login error:', error.message);
+        console.log('❌ Login error:', error.message);
         throw error;
     }
 };
@@ -150,7 +154,7 @@ export const getTasks = async (): Promise<any[]> => {
         }
         return [];
     } catch (error) {
-        console.error('Get Tasks Error:', error);
+        console.log('Get Tasks Error:', error);
         return [];
     }
 };
@@ -162,7 +166,7 @@ export const startTask = async (taskId: number): Promise<any> => {
     try {
         return await makeRequest<any>(ENDPOINTS.TASK_START, { task_id: taskId }, true);
     } catch (error: any) {
-        console.error('Start Task Error:', error.message);
+        console.log('Start Task Error:', error.message);
         throw error;
     }
 };
@@ -178,7 +182,23 @@ export const stopTask = async (taskId: number | string, duration: number | strin
             true
         );
     } catch (error: any) {
-        console.error('Stop Task Error:', error.message);
+        console.log('Stop Task Error:', error.message);
+        throw error;
+    }
+};
+
+/**
+ * Hold a task (Pause Timer + Stage update)
+ */
+export const holdTask = async (taskId: number | string, duration: number | string): Promise<any> => {
+    try {
+        return await makeRequest<any>(
+            ENDPOINTS.TASK_HOLD,
+            { task_id: Number(taskId), duration: duration },
+            true
+        );
+    } catch (error: any) {
+        console.log('Hold Task Error:', error.message);
         throw error;
     }
 };
@@ -202,7 +222,85 @@ export const logExpense = async (
             true
         );
     } catch (error: any) {
-        console.error('Log Expense Error:', error.message);
+        console.log('Log Expense Error:', error.message);
+        throw error;
+    }
+};
+
+/**
+ * Fetch messages for a task
+ */
+export const fetchTaskMessages = async (taskId: number): Promise<any[]> => {
+    try {
+        const response: any = await makeRequest<any>(
+            ENDPOINTS.TASK_MESSAGES,
+            { task_id: taskId },
+            true
+        );
+        if (response.status === 'success' && Array.isArray(response.data)) {
+            return response.data;
+        }
+        return [];
+    } catch (error: any) {
+        console.log('Fetch Messages Error:', error.message);
+        return [];
+    }
+};
+
+/**
+ * Post a message to a task
+ */
+export const postTaskMessage = async (taskId: number, message: string): Promise<any> => {
+    try {
+        return await makeRequest<any>(
+            ENDPOINTS.TASK_MESSAGES,
+            { task_id: taskId, message: message },
+            true
+        );
+    } catch (error: any) {
+        console.log('Post Message Error:', error.message);
+        throw error;
+    }
+};
+
+/**
+ * Upload audio to chatter
+ */
+export const uploadAudioToChatter = async (
+    model: string,
+    resId: number,
+    audio: string,
+    fileName: string = 'voice_note.mp3'
+): Promise<any> => {
+    try {
+        return await makeRequest<any>(
+            ENDPOINTS.CHATAUDIO,
+            {
+                model: model,
+                res_id: resId,
+                audio: audio, // Base64 string
+                file_name: fileName,
+            },
+            true
+        );
+    } catch (error: any) {
+        console.log('Upload Audio Error:', error.message);
+        throw error;
+    }
+};
+
+/**
+ * Reset Password
+ */
+export const resetPassword = async (login: string): Promise<any> => {
+    try {
+        return await makeRequest<any>(
+            ENDPOINTS.RESET_PASSWORD,
+            { login: login },
+            false
+        );
+    } catch (error: any) {
+        console.log('Reset Password Error:', error.message);
         throw error;
     }
 };

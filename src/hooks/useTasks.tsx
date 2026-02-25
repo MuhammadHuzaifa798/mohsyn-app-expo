@@ -4,8 +4,26 @@ import {
     getTasks as fetchTasksFromApi,
     startTask as startTaskApi,
     stopTask as stopTaskApi,
-    logExpense as logExpenseApi
+    holdTask as holdTaskApi,
+    logExpense as logExpenseApi,
+    fetchTaskMessages,
+    postTaskMessage,
+    uploadAudioToChatter
 } from '../utils/odooApi';
+import { showToast } from '../utils/toast';
+import { stripHtml } from '../utils/textHelpers';
+
+const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+const durationToHours = (duration: string | number): number => {
+    if (typeof duration === 'number') return duration;
+    if (!duration || typeof duration !== 'string' || !duration.includes(':')) return parseFloat(String(duration)) || 0;
+    const parts = duration.split(':');
+    const h = parseInt(parts[0], 10) || 0;
+    const m = parseInt(parts[1], 10) || 0;
+    const s = parseInt(parts[2], 10) || 0;
+    return h + (m / 60) + (s / 3600);
+};
 
 export interface Task {
     id: string;
@@ -19,13 +37,18 @@ export interface Task {
     startedAt?: string;
     description?: string;
     is_fsm?: boolean;
+    effective_hours?: number;
 }
 
 interface TaskContextType {
     tasks: Task[];
     startTask: (taskId: string) => Promise<void>;
     stopTask: (taskId: string, duration: number | string) => Promise<void>;
+    holdTask: (taskId: string, duration: number | string) => Promise<void>;
     logExpense: (taskId: string, notes: string, image?: string) => Promise<void>;
+    getMessages: (taskId: string) => Promise<any[]>;
+    sendMessage: (taskId: string, message: string) => Promise<void>;
+    sendAudioMessage: (taskId: string, audioBase64: string, fileName?: string) => Promise<void>;
     updateTaskStatus: (taskId: string, newStatus: string) => Promise<void>;
     refreshTasks: () => Promise<void>;
     isLoading: boolean;
@@ -48,13 +71,25 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
         try {
             const apiTasks = await fetchTasksFromApi();
 
-            // Map Odoo tasks to app Task interface
-            const mappedTasks: Task[] = apiTasks.map((t: any) => {
-                let statusColor = '#95A5A6'; // Default Gray
-                const status = t.stage_name || 'New';
+            setTasks(prevTasks => apiTasks.map((t: any) => {
+                const rawStatus = (t.stage_name || '').toLowerCase().trim();
+                let status = 'To Do';
+                let statusColor = '#95A5A6';
 
-                if (status === 'In Progress') statusColor = '#E8832F'; // Orange
-                if (status === 'Done' || status === 'Completed') statusColor = '#27AE60'; // Green
+                // Normalize Status with broad matching
+                if (rawStatus.includes('progress') || rawStatus === 'started' || rawStatus === 'running') {
+                    status = 'In Progress';
+                    statusColor = '#E8832F';
+                } else if (rawStatus.includes('hold') || rawStatus.includes('pause') || rawStatus === 'waiting') {
+                    status = 'On Hold';
+                    statusColor = '#95A5A6';
+                } else if (rawStatus.includes('approval') || rawStatus.includes('pending')) {
+                    status = 'Approval';
+                    statusColor = '#3498DB';
+                } else if (rawStatus.includes('done') || rawStatus.includes('complete') || rawStatus.includes('finish')) {
+                    status = 'Done';
+                    statusColor = '#27AE60';
+                }
 
                 // Parse date if available
                 let formattedDate = '';
@@ -74,6 +109,8 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     });
                 }
 
+                const existingTask = prevTasks.find(p => String(p.id) === String(t.id));
+
                 return {
                     id: String(t.id),
                     title: t.name || 'Untitled Task',
@@ -83,16 +120,16 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     time: formattedTime,
                     status: status,
                     statusColor: statusColor,
-                    description: t.description,
+                    description: stripHtml(t.description),
                     is_fsm: t.is_fsm,
+                    // Stability: Never let effective_hours go down during a session
+                    effective_hours: Math.max(t.effective_hours || 0, existingTask?.effective_hours || 0),
                     // Use server-side start time if available for 'In Progress' tasks
-                    startedAt: status === 'In Progress' ? (t.timer_start || tasks.find(p => p.id === String(t.id))?.startedAt || new Date().toISOString()) : undefined
+                    startedAt: status === 'In Progress' ? (t.timer_start || existingTask?.startedAt || new Date().toISOString()) : undefined
                 };
-            });
-
-            setTasks(mappedTasks);
+            }));
         } catch (error) {
-            console.error('Error refreshing tasks:', error);
+            console.log('Error refreshing tasks:', error);
         } finally {
             setIsLoading(false);
         }
@@ -104,10 +141,16 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }, [refreshTasks]);
 
     const startTask = async (taskId: string) => {
-        // Optimistic update
+        // Optimistic update: Move to In Progress and set startedAt to now
+        // We keep the current effective_hours as the base
         setTasks(prevTasks => prevTasks.map(task =>
             task.id === taskId
-                ? { ...task, status: 'In Progress', statusColor: '#E8832F', startedAt: new Date().toISOString() }
+                ? {
+                    ...task,
+                    status: 'In Progress',
+                    statusColor: '#E8832F',
+                    startedAt: new Date().toISOString()
+                }
                 : task
         ));
 
@@ -116,10 +159,11 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
             if (response.status === 'error') {
                 throw new Error(response.message || 'Failed to start task');
             }
+            await wait(800);
             await refreshTasks();
         } catch (error: any) {
-            console.error('Error starting task:', error);
-            Alert.alert('Task Error', error.message || 'Could not start task on server');
+            console.log('Error starting task:', error);
+            showToast.error('Task Error', error.message || 'Could not start task on server');
             // Revert on error
             await refreshTasks();
             throw error;
@@ -127,10 +171,10 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     const stopTask = async (taskId: string, duration: number | string) => {
-        // Optimistic update
+        // Optimistic update: Now goes to Approval instead of Done
         setTasks(prevTasks => prevTasks.map(task =>
             task.id === taskId
-                ? { ...task, status: 'Done', statusColor: '#27AE60' }
+                ? { ...task, status: 'Approval', statusColor: '#3498DB' }
                 : task
         ));
 
@@ -139,11 +183,43 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
             if (response.status === 'error') {
                 throw new Error(response.message || 'Failed to complete task');
             }
+            await wait(800);
             await refreshTasks();
         } catch (error: any) {
-            console.error('Error stopping task:', error);
-            Alert.alert('Task Error', error.message || 'Could not complete task on server');
+            console.log('Error stopping task:', error);
+            showToast.error('Task Error', error.message || 'Could not complete task on server');
             // Revert on error
+            await refreshTasks();
+            throw error;
+        }
+    };
+
+    const holdTask = async (taskId: string, duration: number | string) => {
+        const hours = durationToHours(duration);
+
+        // Optimistic update: Set status to On Hold and update effective_hours to the duration we just logged
+        setTasks(prevTasks => prevTasks.map(task =>
+            task.id === taskId
+                ? {
+                    ...task,
+                    status: 'On Hold',
+                    statusColor: '#95A5A6',
+                    effective_hours: hours,
+                    startedAt: undefined
+                }
+                : task
+        ));
+
+        try {
+            const response = await holdTaskApi(taskId, duration);
+            if (response.status === 'error') {
+                throw new Error(response.message || 'Failed to hold task');
+            }
+            await wait(800);
+            await refreshTasks();
+        } catch (error: any) {
+            console.log('Error holding task:', error);
+            showToast.error('Task Error', error.message || 'Could not hold task on server');
             await refreshTasks();
             throw error;
         }
@@ -153,10 +229,51 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
         try {
             await logExpenseApi(Number(taskId), notes, image);
         } catch (error) {
-            console.error('Error logging expense:', error);
+            console.log('Error logging expense:', error);
             throw error;
         }
     };
+
+    const getMessages = async (taskId: string) => {
+        try {
+            const msgs = await fetchTaskMessages(Number(taskId));
+            // Normalize and sort messages
+            return msgs.map((msg: any) => ({
+                ...msg,
+                // Ensure body_text is available
+                body_text: msg.body_text || msg.body || '',
+                // Consolidate any attachment fields
+                attachments: msg.attachments || msg.attachment_ids || msg.attachment_info || msg.message_attachments || [],
+            })).sort((a: any, b: any) =>
+                new Date(a.date).getTime() - new Date(b.date).getTime()
+            );
+        } catch (error) {
+            console.log('Error fetching messages:', error);
+            return [];
+        }
+    };
+
+    const sendMessage = async (taskId: string, message: string) => {
+        try {
+            await postTaskMessage(Number(taskId), message);
+        } catch (error) {
+            console.log('Error sending message:', error);
+            throw error;
+        }
+    };
+
+    const sendAudioMessage = async (taskId: string, audioBase64: string, fileName: string = 'voice_note.mp3') => {
+        try {
+            // Usually chatter messages in Odoo for FSM are attached to 'project.task'
+            await uploadAudioToChatter('project.task', Number(taskId), audioBase64, fileName);
+        } catch (error) {
+            console.log('Error sending audio message:', error);
+            throw error;
+        }
+    };
+
+    // Functions removed to fix duplication
+
 
     const updateTaskStatus = async (taskId: string, newStatus: string) => {
         // Optimistic update
@@ -188,7 +305,7 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
             await refreshTasks();
         } catch (error) {
-            console.error('Error updating task status on server:', error);
+            console.log('Error updating task status on server:', error);
         }
     };
 
@@ -197,7 +314,11 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
             tasks,
             startTask,
             stopTask,
+            holdTask,
             logExpense,
+            getMessages,
+            sendMessage,
+            sendAudioMessage,
             updateTaskStatus,
             refreshTasks,
             isLoading

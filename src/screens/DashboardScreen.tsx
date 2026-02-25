@@ -6,6 +6,7 @@ import {
     StatusBar,
     ScrollView,
     Image,
+    RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from '@expo/vector-icons/Ionicons';
@@ -25,6 +26,8 @@ interface DashboardScreenProps {
     onTasks: () => void;
     onCalendar: () => void;
     onTaskPress: (task: any) => void;
+    onRefresh: () => Promise<void>;
+    isLoading: boolean;
 }
 
 const DashboardScreen: React.FC<DashboardScreenProps> = ({
@@ -34,10 +37,19 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({
     onProfile,
     onTasks,
     onCalendar,
-    onTaskPress
+    onTaskPress,
+    onRefresh,
+    isLoading
 }) => {
     const [isUpcomingVisible, setIsUpcomingVisible] = React.useState(true);
     const [userName, setUserName] = React.useState('');
+    const [refreshing, setRefreshing] = React.useState(false);
+
+    const handleRefresh = async () => {
+        setRefreshing(true);
+        await onRefresh();
+        setRefreshing(false);
+    };
 
     React.useEffect(() => {
         loadUserInfo();
@@ -64,9 +76,7 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({
 
                 {/* Header */}
                 <View style={styles.header}>
-                    <TouchableOpacity style={styles.menuButton}>
-                        <Icon name="menu" size={scale(30)} color={Colors.white} />
-                    </TouchableOpacity>
+                    <View style={styles.menuButton} />
                     <Image
                         source={require('../assets/images/logo.png')}
                         style={styles.logo}
@@ -80,7 +90,18 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({
                     </TouchableOpacity>
                 </View>
 
-                <ScrollView bounces={false} style={styles.content}>
+                <ScrollView
+                    bounces={true}
+                    style={styles.content}
+                    refreshControl={
+                        <RefreshControl
+                            refreshing={refreshing}
+                            onRefresh={handleRefresh}
+                            tintColor={Colors.heritageGold}
+                            colors={[Colors.heritageGold]}
+                        />
+                    }
+                >
                     {/* Welcome Section */}
                     <View style={styles.welcomeSection}>
                         <BrandText variant="headline" withDot style={styles.welcomeText}>
@@ -142,7 +163,9 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({
                                                 </View>
                                             </View>
                                             <View style={styles.badge}>
-                                                <BrandText style={styles.badgeText}>{task.status === 'In Progress' ? 'Active' : 'New'}</BrandText>
+                                                <BrandText style={styles.badgeText}>
+                                                    {task.status === 'In Progress' ? 'Active' : task.status === 'Approval' ? 'Approval' : task.status === 'Done' ? 'Done' : 'New'}
+                                                </BrandText>
                                             </View>
                                         </View>
                                         <BrandText style={styles.taskDescription}>

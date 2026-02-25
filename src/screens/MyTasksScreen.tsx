@@ -5,6 +5,7 @@ import {
     TouchableOpacity,
     StatusBar,
     ScrollView,
+    RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, Spacing, Fonts } from '../theme';
@@ -23,11 +24,31 @@ interface MyTasksScreenProps {
     onDashboard: () => void;
     onLogExpenses: () => void;
     onCalendar?: () => void;
+    onRefresh: () => Promise<void>;
+    isLoading: boolean;
 }
 
-const MyTasksScreen: React.FC<MyTasksScreenProps> = ({ tasks, onTaskPress, onBack, onProfile, onDashboard, onLogExpenses, onCalendar }) => {
+const MyTasksScreen: React.FC<MyTasksScreenProps> = ({
+    tasks,
+    onTaskPress,
+    onBack,
+    onProfile,
+    onDashboard,
+    onLogExpenses,
+    onCalendar,
+    onRefresh,
+    isLoading
+}) => {
     const [activeFilterState, setActiveFilter] = React.useState('All');
-    const filters = ['All', 'To Do', 'In Progress', 'Done'];
+    const [refreshing, setRefreshing] = React.useState(false);
+
+    const handleRefresh = async () => {
+        setRefreshing(true);
+        await onRefresh();
+        setRefreshing(false);
+    };
+
+    const filters = ['All', 'To Do', 'In Progress', 'Approval', 'Done'];
 
     return (
         <BackgroundWrapper>
@@ -62,7 +83,18 @@ const MyTasksScreen: React.FC<MyTasksScreenProps> = ({ tasks, onTaskPress, onBac
                     </ScrollView>
                 </View>
 
-                <ScrollView style={styles.content} contentContainerStyle={styles.scrollContent}>
+                <ScrollView
+                    style={styles.content}
+                    contentContainerStyle={styles.scrollContent}
+                    refreshControl={
+                        <RefreshControl
+                            refreshing={refreshing}
+                            onRefresh={handleRefresh}
+                            tintColor={Colors.heritageGold}
+                            colors={[Colors.heritageGold]}
+                        />
+                    }
+                >
                     {tasks
                         .filter(task => activeFilterState === 'All' || task.status === activeFilterState)
                         .map((task) => (
@@ -102,6 +134,11 @@ const MyTasksScreen: React.FC<MyTasksScreenProps> = ({ tasks, onTaskPress, onBac
                                         <View style={[styles.statusBadge, styles.inProgressBadge]}>
                                             <Icon name="time" size={scale(12)} color={Colors.heritageGold} style={{ marginRight: scale(4) }} />
                                             <BrandText style={styles.statusTextActive}>In Progress</BrandText>
+                                        </View>
+                                    ) : task.status === 'Approval' ? (
+                                        <View style={[styles.statusBadge, styles.approvalBadge]}>
+                                            <Icon name="checkmark-circle-outline" size={scale(12)} color="#3498DB" style={{ marginRight: scale(4) }} />
+                                            <BrandText style={styles.statusTextApproval}>Approval</BrandText>
                                         </View>
                                     ) : task.status === 'Done' ? (
                                         <View style={[styles.statusBadge, styles.doneBadge]}>
@@ -283,6 +320,11 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: 'rgba(39, 174, 96, 0.3)',
     },
+    approvalBadge: {
+        backgroundColor: 'rgba(52, 152, 219, 0.2)',
+        borderWidth: 1,
+        borderColor: 'rgba(52, 152, 219, 0.3)',
+    },
     todoBadge: {
         backgroundColor: 'rgba(149, 165, 166, 0.2)',
         borderWidth: 1,
@@ -290,6 +332,11 @@ const styles = StyleSheet.create({
     },
     statusTextActive: {
         color: Colors.heritageGold,
+        fontSize: rf(13),
+        fontWeight: 'bold',
+    },
+    statusTextApproval: {
+        color: '#3498DB',
         fontSize: rf(13),
         fontWeight: 'bold',
     },

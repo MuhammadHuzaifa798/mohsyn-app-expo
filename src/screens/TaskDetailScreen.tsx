@@ -20,6 +20,13 @@ interface TaskDetailScreenProps {
 }
 
 const TaskDetailScreen: React.FC<TaskDetailScreenProps> = ({ task, onBack, onInProgress }) => {
+    // Auto-redirect to In Progress if the task is already active
+    React.useEffect(() => {
+        if (task?.status === 'In Progress') {
+            onInProgress();
+        }
+    }, [task?.status]);
+
     return (
         <BackgroundWrapper>
             <SafeAreaView style={styles.safeArea}>
@@ -75,7 +82,7 @@ const TaskDetailScreen: React.FC<TaskDetailScreenProps> = ({ task, onBack, onInP
                         <View style={styles.descriptionSection}>
                             <BrandText variant="headline" style={styles.sectionTitle}>Task Information</BrandText>
                             <BrandText style={styles.descriptionText}>
-                                Go to the client's house at 123 Pine St in Sprippfield. Bring the necessary tool the iire orariarai orm anwhere atarintne, soun tatne inetnuord ting. Hoteee and further winning.
+                                {task?.description || "Go to the client's house at 123 Pine St in Sprippfield. Bring the necessary tool the iire orariarai orm anwhere atarintne, soun tatne inetnuord ting. Hoteee and further winning."}
                             </BrandText>
                         </View>
                     </View>
@@ -86,7 +93,7 @@ const TaskDetailScreen: React.FC<TaskDetailScreenProps> = ({ task, onBack, onInP
                     <View style={styles.actionContainer}>
                         <TouchableOpacity style={styles.startButton} onPress={onInProgress}>
                             <BrandText style={styles.startButtonText}>
-                                {task?.status === 'In Progress' ? 'CONTINUE TASK' : 'START TASK'}
+                                {task?.status === 'In Progress' || task?.status === 'On Hold' || (task?.status || '').toLowerCase().includes('progress') ? 'CONTINUE TASK' : 'START TASK'}
                             </BrandText>
                         </TouchableOpacity>
                     </View>

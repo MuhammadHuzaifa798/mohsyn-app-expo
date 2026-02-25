@@ -16,8 +16,9 @@ import Icon from '@expo/vector-icons/Feather';
 import BrandText from '../components/BrandText';
 import BackgroundWrapper from '../components/BackgroundWrapper';
 import { scale, verticalScale, rf, wp } from '../utils/responsiveHelpers';
-import { loginToOdoo } from '../utils/odooApi';
+import { loginToOdoo, resetPassword } from '../utils/odooApi';
 import { useTasks } from '../hooks/useTasks';
+import { showToast } from '../utils/toast';
 
 interface LoginScreenProps {
     onLogin: () => void;
@@ -33,11 +34,11 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
     const handleLogin = async () => {
         // Validation
         if (!username.trim()) {
-            Alert.alert('Error', 'Please enter your username/email');
+            showToast.error('Validation Error', 'Please enter your username/email');
             return;
         }
         if (!password.trim()) {
-            Alert.alert('Error', 'Please enter your password');
+            showToast.error('Validation Error', 'Please enter your password');
             return;
         }
 
@@ -49,17 +50,51 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
             if (result && result.status === 'success') {
                 // Refresh tasks before navigating
                 await refreshTasks();
+                showToast.success('Welcome back!', 'Successfully logged in');
                 // Login successful - navigate to Dashboard
                 onLogin();
             }
         } catch (error: any) {
-            Alert.alert(
+            showToast.error(
                 'Login Failed',
                 error.message || 'Unable to connect to server. Please check your credentials and try again.'
             );
         } finally {
             setIsLoading(false);
         }
+    };
+
+    const handleForgotPassword = async () => {
+        if (!username.trim()) {
+            showToast.info('Reset Password', 'Please enter your email address in the username field above so we can send you reset instructions.');
+            return;
+        }
+
+        Alert.alert(
+            'Reset Password',
+            `Send password reset instructions to ${username}?`,
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Send',
+                    onPress: async () => {
+                        setIsLoading(true);
+                        try {
+                            const response = await resetPassword(username.trim());
+                            if (response.status === 'success') {
+                                showToast.success('Email Sent', response.message || 'Check your email for reset instructions.');
+                            } else {
+                                showToast.error('Reset Failed', response.message || 'Could not reset password.');
+                            }
+                        } catch (error: any) {
+                            showToast.error('Error', error.message || 'Network error.');
+                        } finally {
+                            setIsLoading(false);
+                        }
+                    }
+                }
+            ]
+        );
     };
 
     return (
@@ -144,7 +179,11 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
                             )}
                         </TouchableOpacity>
 
-                        <TouchableOpacity style={styles.forgotPassword}>
+                        <TouchableOpacity
+                            style={styles.forgotPassword}
+                            onPress={handleForgotPassword}
+                            disabled={isLoading}
+                        >
                             <BrandText style={styles.forgotPasswordText}>Forgot Password?</BrandText>
                         </TouchableOpacity>
 
