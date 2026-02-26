@@ -113,16 +113,20 @@ const MyTasksScreen: React.FC<MyTasksScreenProps> = ({
                                             <Icon name="chevron-forward" size={scale(16)} color="rgba(255,255,255,0.4)" />
                                         </View>
                                         <View style={styles.infoRow}>
-                                            <Icon name="location-outline" size={scale(14)} color={Colors.heritageGold} />
+                                            <Icon name="business-outline" size={scale(14)} color={Colors.heritageGold} />
                                             <BrandText style={styles.infoText}>{task.company}</BrandText>
                                         </View>
                                         <View style={styles.infoRow}>
+                                            <Icon name="location-outline" size={scale(14)} color="rgba(255,255,255,0.4)" />
+                                            <BrandText style={styles.infoText}>{task.location}</BrandText>
+                                        </View>
+                                        <View style={styles.infoRow}>
                                             <Icon name="call-outline" size={scale(14)} color="rgba(255,255,255,0.4)" />
-                                            <BrandText style={styles.infoText}>{task.location || task.time}</BrandText>
+                                            <BrandText style={styles.infoText}>{task.partner_phone || 'N/A'}</BrandText>
                                         </View>
                                         <View style={styles.infoRow}>
                                             <Icon name="calendar-outline" size={scale(14)} color="rgba(255,255,255,0.4)" />
-                                            <BrandText style={styles.infoText}>{task.date}</BrandText>
+                                            <BrandText style={styles.infoText}>{task.date} {task.time}</BrandText>
                                         </View>
                                     </View>
                                 </View>

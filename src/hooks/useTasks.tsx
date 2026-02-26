@@ -38,6 +38,9 @@ export interface Task {
     description?: string;
     is_fsm?: boolean;
     effective_hours?: number;
+    category?: string;
+    sub_category?: string;
+    partner_phone?: string;
 }
 
 interface TaskContextType {
@@ -122,6 +125,9 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     statusColor: statusColor,
                     description: stripHtml(t.description),
                     is_fsm: t.is_fsm,
+                    category: t.category,
+                    sub_category: t.sub_category,
+                    partner_phone: t.partner_phone,
                     // Stability: Never let effective_hours go down during a session
                     effective_hours: Math.max(t.effective_hours || 0, existingTask?.effective_hours || 0),
                     // Use server-side start time if available for 'In Progress' tasks

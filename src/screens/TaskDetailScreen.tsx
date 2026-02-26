@@ -74,9 +74,36 @@ const TaskDetailScreen: React.FC<TaskDetailScreenProps> = ({ task, onBack, onInP
                                 </View>
                                 <View>
                                     <BrandText style={styles.label}>Contact</BrandText>
-                                    <BrandText style={styles.value}>23 09 2327 1654</BrandText>
+                                    <BrandText style={styles.value}>{task?.partner_phone || 'N/A'}</BrandText>
                                 </View>
                             </View>
+
+                            {(task?.category || task?.sub_category) && (
+                                <View style={{ gap: verticalScale(20) }}>
+                                    {task?.category && (
+                                        <View style={styles.detailRow}>
+                                            <View style={styles.iconContainer}>
+                                                <Icon name="grid-outline" size={scale(18)} color={Colors.heritageGold} />
+                                            </View>
+                                            <View>
+                                                <BrandText style={styles.label}>Category</BrandText>
+                                                <BrandText style={styles.value}>{task.category}</BrandText>
+                                            </View>
+                                        </View>
+                                    )}
+                                    {task?.sub_category && (
+                                        <View style={styles.detailRow}>
+                                            <View style={styles.iconContainer}>
+                                                <Icon name="list-outline" size={scale(18)} color={Colors.heritageGold} />
+                                            </View>
+                                            <View>
+                                                <BrandText style={styles.label}>Sub Category</BrandText>
+                                                <BrandText style={styles.value}>{task.sub_category}</BrandText>
+                                            </View>
+                                        </View>
+                                    )}
+                                </View>
+                            )}
                         </View>
 
                         <View style={styles.descriptionSection}>
